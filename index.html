@@ -259,28 +259,40 @@ details.tbl summary{cursor:pointer;font-weight:700}
   </div>
 
   <div class="card q">
-    <h2>얼마짜리를 살까요?</h2>
+    <h2>이미 갖고 계신가요?</h2>
+    <div class="seg" id="ownSeg"><button type="button" data-own="0" aria-pressed="true">새로 살 거예요</button><button type="button" data-own="1" aria-pressed="false">이미 갖고 있어요</button></div>
+    <div id="ownBox" hidden>
+      <div class="adv" style="margin-top:16px">
+        <div class="f"><label for="buyYear">산 해</label><select id="buyYear"></select></div>
+        <div class="f"><label for="curPrice">지금 시세 (억원)</label><input type="number" id="curPrice" step="0.5" min="0.1"></div>
+      </div>
+      <p class="help" id="ownHint"></p>
+    </div>
+  </div>
+
+  <div class="card q">
+    <h2 id="priceQ">얼마짜리를 살까요?</h2>
     <div class="big tnum" id="priceBig"></div>
     <div class="chips" id="priceChips"></div>
     <div class="row-in"><input type="number" id="price" min="0.5" step="0.5" aria-label="매입가 직접 입력"><span class="unit">억원 직접 입력</span></div>
   </div>
 
   <div class="card q">
-    <h2>몇 년 동안 갖고 있을까요?</h2>
+    <h2 id="yearsQ">몇 년 동안 갖고 있을까요?</h2>
     <div class="big tnum" id="yearsBig"></div>
     <input type="range" id="years" min="1" max="30" step="1" aria-label="보유 기간">
-    <div class="ends"><span>1년</span><span>30년</span></div>
+    <div class="ends"><span id="yearsMin">1년</span><span>30년</span></div>
   </div>
 
   <div class="card q">
-    <h2>대출은 얼마나 받을까요?</h2>
+    <h2 id="ltvQ">대출은 얼마나 받을까요?</h2>
     <div class="big tnum" id="ltvBig"></div>
     <input type="range" id="ltv" min="0" max="80" step="5" aria-label="대출 비율">
     <div class="ends"><span>대출 없음</span><span>매입가의 80%</span></div>
   </div>
 
   <div class="card q">
-    <h2>값은 매년 얼마나 오를까요?</h2>
+    <h2 id="growthQ">값은 매년 얼마나 오를까요?</h2>
     <div class="big tnum" id="growthBig"></div>
     <input type="range" id="growth" min="-30" max="30" step="0.5" aria-label="연 시세 상승률">
     <div class="ends"><span>−30%</span><span>+30%</span></div>
@@ -376,6 +388,12 @@ details.tbl summary{cursor:pointer;font-weight:700}
     <h2>값이 오른 만큼, 빠져나간 돈</h2>
     <p class="sub" id="vsSub"></p>
     <div class="vs" id="vs"></div>
+  </div>
+
+  <div class="card" id="pfCard" hidden>
+    <h2>지금까지, 그리고 앞으로</h2>
+    <p class="sub" id="pfSub"></p>
+    <div class="list" id="pfList"></div>
   </div>
 
   <div class="card">
@@ -531,8 +549,9 @@ function irr(flows){ // flows[i] at time i (years)
 function simulate(p){
   const type = p.type, P = p.price * EOK, N = p.years, g = p.growth / 100;
   const pub = p.pubRatio / 100, depNet = p.depRate / 100 * (1 - .154);
-  const rateAt = t => Math.min(.12, Math.max(0, (p.rate0 + p.rateUp * (t - 1)) / 100));
-  const valueAt = t => P * Math.pow(1 + g, t);
+  const past = p.pastYears || 0, gPast = p.pastGrowth || 0;
+  const rateAt = t => Math.min(.12, Math.max(0, (p.rate0 + p.rateUp * Math.max(0, t - 1 - past)) / 100));
+  const valueAt = t => P * Math.pow(1 + gPast, Math.min(t, past)) * Math.pow(1 + g, Math.max(0, t - past));
   const mgmtMonthly = p.mgmt === '' || p.mgmt == null ? Math.round(20 + 1.3 * p.price) * MAN : p.mgmt * MAN;
 
   // ---- 취득
@@ -669,7 +688,7 @@ function simulate(p){
   return { p, P, N, loan0, equity, acq, acqTotal, hold, holdTotal, sale, saleTotal, years, last,
     principalPaid: sum('principal'), rentIncome: sum('rentIncome'), extraInjected: injected - equity, injected,
     ownerWealth: last.ownerWealth, ownerProfit: last.ownerProfit, ownerIrr: irr(fo), ownerSavings: sOwner,
-    priceGain: last.value - P, mgmtMonthly, alts: alt };
+    priceGain: last.value - P, mgmtMonthly, valueAt, past, alts: alt };
 }
 
 
@@ -695,12 +714,25 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const reduceMotion = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
 
 /* ===================== 1. 조건 ===================== */
-let state = { type: 'res', hi: 'local', ...DEFAULTS.res };
+const NOW_YEAR = 2026;
+const OWN_DEFAULTS = { res: { price: 6, curPrice: 9, buyYear: 2018, years: 5 }, com: { price: 20, curPrice: 26, buyYear: 2018, years: 5 } };
+let state = { type: 'res', hi: 'local', owned: false, ...DEFAULTS.res, buyYear: 2018, curPrice: 9 };
+function simParams(){
+  const past = state.owned ? Math.max(0, NOW_YEAR - state.buyYear) : 0;
+  let ahead = Math.max(0, Math.round(state.years)); if (past + ahead < 1) ahead = 1;
+  const pastGrowth = past > 0 && state.curPrice > 0 ? Math.pow(state.curPrice / state.price, 1 / past) - 1 : 0;
+  return { ...state, years: past + ahead, ahead, pastYears: past, pastGrowth, startYear: state.owned ? state.buyYear : NOW_YEAR };
+}
 const NUM_IDS = ['price','years','ltv','growth','rate0','rateUp','pubRatio','depRate','term','repair','moving','jeonseRatio','wolseDep','conv','yield','rentUp','vacancy','opex','landShare','incomeTax'];
 
 function syncInputs(){
   for (const id of NUM_IDS) $(id).value = state[id];
   $('mgmt').value = state.mgmt; $('repay').value = state.repay; $('cap6').checked = state.cap6;
+  if (!$('buyYear').options.length) for (let y = NOW_YEAR; y >= 1990; y--) $('buyYear').add(new Option(y + '년', y));
+  $('buyYear').value = state.buyYear; $('curPrice').value = state.curPrice;
+  document.querySelectorAll('#ownSeg button').forEach(b => b.setAttribute('aria-pressed', (b.dataset.own === '1') === state.owned));
+  $('ownBox').hidden = !state.owned;
+  $('years').min = state.owned ? 0 : 1; $('yearsMin').textContent = state.owned ? '바로 팔기' : '1년';
   document.querySelectorAll('#typeSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === state.type));
   document.querySelectorAll('#hiSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.hi === state.hi));
   document.querySelectorAll('.res-only').forEach(el => el.hidden = state.type !== 'res');
@@ -714,22 +746,38 @@ function refreshSetup(){
   const P = state.price * EOK;
   let loan = P * state.ltv / 100; const capped = res && state.cap6 && loan > 6e8; if (capped) loan = 6e8;
   $('priceBig').textContent = state.price > 0 ? won(P) : '–';
-  $('yearsBig').innerHTML = `${state.years}년<small>${2026 + +state.years}년에 팔아요</small>`;
+  const sp = simParams(), own = state.owned;
+  $('priceQ').textContent = own ? '얼마에 샀나요?' : '얼마짜리를 살까요?';
+  $('yearsQ').textContent = own ? '앞으로 몇 년 더 갖고 있을까요?' : '몇 년 동안 갖고 있을까요?';
+  $('ltvQ').textContent = own ? '살 때 대출은 얼마나 받았나요?' : '대출은 얼마나 받을까요?';
+  $('growthQ').textContent = own ? '앞으로 값은 매년 얼마나 오를까요?' : '값은 매년 얼마나 오를까요?';
+  $('yearsBig').innerHTML = own
+    ? (sp.ahead === 0 ? `지금 팔기<small>${sp.pastYears}년 보유</small>` : `${sp.ahead}년 더<small>${NOW_YEAR + sp.ahead}년에 팔아요 · 총 ${sp.years}년 보유</small>`)
+    : `${state.years}년<small>${NOW_YEAR + +state.years}년에 팔아요</small>`;
+  if (own) $('ownHint').textContent = sp.pastYears > 0
+    ? `${state.buyYear}년부터 ${sp.pastYears}년 동안 연평균 ${pct(sp.pastGrowth)}씩 올랐어요. 지나간 ${sp.pastYears}년도 처음부터 같이 보여드려요.`
+    : '올해 산 집이면 새로 사는 경우와 같아요.';
   $('ltvBig').innerHTML = `${state.ltv}%<small>${loan > 0 ? won(loan) + (capped ? ' (6억 한도)' : '') : '내 돈으로만'}</small>`;
-  $('growthBig').innerHTML = `${state.growth > 0 ? '+' : ''}${state.growth}%<small>${state.years}년 뒤 ${short(P * Math.pow(1 + state.growth / 100, state.years))}</small>`;
+  const baseV = own ? state.curPrice * EOK : P, aheadY = own ? sp.ahead : state.years;
+  $('growthBig').innerHTML = `${state.growth > 0 ? '+' : ''}${state.growth}%<small>${aheadY}년 뒤 ${short(baseV * Math.pow(1 + state.growth / 100, aheadY))}</small>`;
   $('typeHint').textContent = res ? '직접 들어가 사는 1주택자 기준이에요. 전용 85㎡ 이하로 계산해요.' : '상가·사무실로 임대를 놓는 건물이에요. 월세 수입과 공실까지 계산해요.';
-  $('startSub').textContent = `${res ? '아파트' : '꼬마빌딩'} ${won(P)} · ${state.years}년 보유`;
+  $('startSub').textContent = own ? `${state.buyYear}년에 ${won(P)}에 산 ${res ? '아파트' : '꼬마빌딩'} · 총 ${sp.years}년 보유` : `${res ? '아파트' : '꼬마빌딩'} ${won(P)} · ${state.years}년 보유`;
+  $('startBtn').firstChild.textContent = own ? '내 건물 돌아보기' : '건물주 되어보기';
 }
 function bindSetup(){
   for (const id of NUM_IDS) $(id).addEventListener('input', e => { const v = parseFloat(e.target.value); if (isFinite(v)) { state[id] = v; refreshSetup(); } });
   $('mgmt').addEventListener('input', e => { state.mgmt = e.target.value === '' ? '' : parseFloat(e.target.value); });
   $('repay').addEventListener('change', e => { state.repay = e.target.value; });
   $('cap6').addEventListener('change', e => { state.cap6 = e.target.checked; refreshSetup(); });
+  $('buyYear').addEventListener('change', e => { state.buyYear = +e.target.value; refreshSetup(); });
+  $('curPrice').addEventListener('input', e => { const v = parseFloat(e.target.value); if (v > 0) { state.curPrice = v; refreshSetup(); } });
+  $('ownSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const own = b.dataset.own === '1'; if (own === state.owned) return;
+    state.owned = own; Object.assign(state, own ? OWN_DEFAULTS[state.type] : { price: DEFAULTS[state.type].price, years: DEFAULTS[state.type].years }); syncInputs(); });
   $('priceChips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.price = +b.dataset.v; $('price').value = state.price; refreshSetup(); });
   $('typeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.dataset.type === state.type) return;
-    state = { type: b.dataset.type, hi: state.hi, ...DEFAULTS[b.dataset.type], years: state.years }; syncInputs(); });
+    state = { type: b.dataset.type, hi: state.hi, owned: state.owned, ...DEFAULTS[b.dataset.type], buyYear: state.buyYear, curPrice: state.curPrice, years: state.years, ...(state.owned ? OWN_DEFAULTS[b.dataset.type] : {}) }; syncInputs(); });
   $('hiSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.hi = b.dataset.hi; syncInputs(); });
-  $('resetBtn').addEventListener('click', () => { state = { type: state.type, hi: state.hi, ...DEFAULTS[state.type], price: state.price, years: state.years }; syncInputs(); });
+  $('resetBtn').addEventListener('click', () => { state = { ...state, ...DEFAULTS[state.type], price: state.price, years: state.years }; syncInputs(); });
   $('startBtn').addEventListener('click', startSim);
   $('backSetup').addEventListener('click', () => { stopSim(); show('sSetup'); });
   $('rpEdit').addEventListener('click', () => show('sSetup'));
@@ -797,7 +845,8 @@ function mood(m, sweat){
 function buildTimeline(r){
   const res = r.p.type === 'res', N = r.N, ev = [];
   const add = (t, o) => ev.push({ t, ...o });
-  add(-5.6, { kind: 'info', ic: '계약', title: `${won(r.P)} ${res ? '아파트' : '꼬마빌딩'} 계약`, sub: r.loan0 > 0 ? `대출 ${won(r.loan0)}을 받았어요` : '대출 없이 샀어요', bubble: '드디어 건물주가 됐다!', mood: 'happy', jump: true, inject: r.equity - r.acqTotal });
+  const past = r.past, Y0 = r.p.startYear;
+  add(-5.6, { kind: 'info', ic: '계약', title: `${past ? Y0 + '년, ' : ''}${won(r.P)} ${res ? '아파트' : '꼬마빌딩'} 계약`, sub: r.loan0 > 0 ? `대출 ${won(r.loan0)}을 받았어요` : '대출 없이 샀어요', bubble: '드디어 건물주가 됐다!', mood: 'happy', jump: true, inject: r.equity - r.acqTotal });
   add(-4.4, { kind: 'out', ic: '세금', title: '취득세 납부', sub: '취득세·지방교육세' + (res ? '' : '·농특세'), amt: r.acq.acqTax + r.acq.edu + r.acq.rural, bubble: '사자마자 세금부터…', mood: 'flat', sweat: true });
   add(-3.2, { kind: 'out', ic: '중개', title: '부동산 중개보수', sub: '부가세 포함', amt: r.acq.broker, bubble: '중개보수도 내야지', mood: 'flat' });
   add(-2.0, { kind: 'out', ic: '등기', title: '법무사·등기·채권', sub: '대출 인지세 포함', amt: r.acq.legal + r.acq.stamp });
@@ -817,6 +866,10 @@ function buildTimeline(r){
     if (y.incomeTax > 0) add(base + 11.4, { kind: 'out', ic: '소득', title: '임대소득 종합소득세', sub: '지방소득세 포함', amt: y.incomeTax });
     add(base + 11.85, { kind: 'info', ic: `${t}년`, title: `${t}년 차 끝 · 시세 ${short(y.value)}`, sub: `지금 팔면 ${swon(y.ownerProfit)}`, yearEnd: t, mood: y.ownerProfit > 0 ? 'happy' : 'sad' });
   });
+  if (past > 0){
+    const sunk = r.acqTotal + r.years.slice(0, past).reduce((a, y) => a + y.costs, 0);
+    add(past * 12 - .05, { kind: 'info', ic: '오늘', title: `${NOW_YEAR}년, 여기까지가 지금이에요`, sub: `이미 나간 숨은 비용 ${won(sunk)}`, bubble: past < N ? '여기서부터는 앞으로의 일!' : '오늘 바로 팔아볼까?', mood: 'flat', jump: true });
+  }
   const S = N * 12, L = r.last;
   add(S + .4, { kind: 'info', ic: '매도', title: `${won(L.value)}에 팔았어요`, sub: `${N}년 동안 ${pct(L.value / r.P - 1)}`, bubble: '드디어 팔았다!', mood: 'happy', jump: true, sold: true });
   add(S + 1.2, { kind: 'out', ic: '중개', title: '매도 중개보수', sub: '부가세 포함', amt: r.sale.broker });
@@ -842,12 +895,12 @@ function buildTimeline(r){
 let TL = null;
 function startSim(){
   stopSim();
-  result = simulate({ ...state, years: Math.round(state.years) });
+  result = simulate(simParams());
   TL = buildTimeline(result);
   const r = result, res = r.p.type === 'res';
   $('scene').innerHTML = sceneSVG(r.p.type);
   $('feed').innerHTML = ''; $('fx').innerHTML = '';
-  $('progMid').textContent = `갖고 있는 ${r.N}년`;
+  $('progMid').textContent = r.past ? (r.past < r.N ? `지난 ${r.past}년 · 앞으로 ${r.N - r.past}년` : `지난 ${r.past}년`) : `갖고 있는 ${r.N}년`;
   $('bubble').className = 'bubble hide';
   $('playBtn').textContent = '일시정지'; $('skipBtn').textContent = '결과 바로 보기';
   const old = $('stage').querySelector('.done-card'); if (old) old.remove();
@@ -862,7 +915,8 @@ function stopSim(){ cancelAnimationFrame(sim.raf); sim.done = true; }
 
 function msPerUnit(t){
   if (t < 0 || t >= TL.S) return 1700;
-  return Math.min(2000, Math.max(330, 120000 / (TL.S + 10)));
+  const base = Math.min(2000, Math.max(330, 120000 / (TL.S + 10)));
+  return t < result.past * 12 && result.past < result.N ? base / 2.5 : base;
 }
 function loop(){
   if (sim.done || sim.paused) return;
@@ -931,12 +985,12 @@ function frame(){
   // 시간 표시
   let when, sub;
   if (t < 0){ when = '사는 날'; sub = '계약과 잔금'; }
-  else if (t < S){ const yr = Math.floor(t / 12) + 1, mo = Math.floor(t % 12) + 1; when = `${yr}년 차`; sub = `${2026 + yr}년 ${mo}월 · 금리 ${(r.years[yr - 1].rate * 100).toFixed(2)}%`; }
-  else { when = '파는 날'; sub = `${2026 + r.N}년 · ${r.N}년 만에 매도`; }
+  else if (t < S){ const yr = Math.floor(t / 12) + 1, mo = Math.floor(t % 12) + 1; when = `${yr}년 차`; sub = `${r.p.startYear + yr - 1}년 ${mo}월 · 금리 ${(r.years[yr - 1].rate * 100).toFixed(2)}%` + (yr <= r.past ? ' · 지나간 시간' : ''); }
+  else { when = '파는 날'; sub = `${r.p.startYear + r.N}년 · ${r.N}년 만에 매도`; }
   $('simWhen').textContent = when; $('simSub').textContent = sub;
   $('progBar').style.width = (Math.max(0, (t + 6.2) / (TL.End + 6.2)) * 100) + '%';
   // 시세 꼬리표, 해, 창문
-  const v = r.P * Math.pow(1 + r.p.growth / 100, m / 12);
+  const v = r.valueAt(m / 12);
   const d = v / r.P - 1;
   $('tagTxt').innerHTML = `시세 ${short(v)} <tspan fill="${d > 0 ? 'var(--up)' : d < 0 ? 'var(--down)' : 'var(--muted)'}">${d >= 0 ? '▲' : '▼'}${Math.abs(d * 100).toFixed(1)}%</tspan>`;
   const yf = t < 0 ? (t + 6.2) / 6.2 : t >= S ? Math.min(1, (t - S) / 4.6) : (t % 12) / 12;
@@ -964,7 +1018,7 @@ function sparkSeries(){
   let lumpIdx = 0; const lumps = TL.lumpAt;
   for (let m = 0; m <= S; m++){
     let lump = 0; for (const [lt, a] of lumps) if (lt <= m) lump += a;
-    pts.push({ x: m, gain: r.P * (Math.pow(1 + r.p.growth / 100, m / 12) - 1), cost: r.acqTotal + TL.cumCost[m] + lump });
+    pts.push({ x: m, gain: r.valueAt(m / 12) - r.P, cost: r.acqTotal + TL.cumCost[m] + lump });
   }
   pts.push({ x: S + 3, gain: pts[S].gain, cost: pts[S].cost + r.saleTotal });
   return pts;
@@ -1001,7 +1055,7 @@ function finishSim(){
 
 /* ===================== 3. 보고서 ===================== */
 function showReport(){
-  if (!result) result = simulate({ ...state, years: Math.round(state.years) });
+  if (!result) result = simulate(simParams());
   show('sReport'); renderReport(result);
 }
 
@@ -1017,7 +1071,19 @@ const LINE_COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)'];
 function renderReport(r){
   const p = r.p, res = p.type === 'res';
   const hidden = r.acqTotal + r.holdTotal + r.saleTotal;
-  $('rpTag').textContent = `${res ? '아파트' : '꼬마빌딩'} ${won(r.P)} · ${r.N}년 보유 · 시세 연 ${p.growth}%`;
+  $('rpTag').textContent = r.past ? `${p.startYear}년에 ${won(r.P)}에 산 ${res ? '아파트' : '꼬마빌딩'} · 총 ${r.N}년 보유 · 앞으로 연 ${p.growth}%` : `${res ? '아파트' : '꼬마빌딩'} ${won(r.P)} · ${r.N}년 보유 · 시세 연 ${p.growth}%`;
+  $('pfCard').hidden = !r.past;
+  if (r.past){
+    const pastY = r.years.slice(0, r.past), futY = r.years.slice(r.past);
+    const sunk = r.acqTotal + pastY.reduce((a, y) => a + y.costs, 0), fut = futY.reduce((a, y) => a + y.costs, 0) + r.saleTotal;
+    const today = r.years[r.past - 1];
+    $('pfSub').textContent = `${p.startYear}년부터 ${NOW_YEAR}년까지 이미 나간 돈과, 지금부터 팔 때까지 나갈 돈을 나눴어요.`;
+    $('pfList').innerHTML = [
+      ['이미', '이미 나간 돈', `살 때 + 지난 ${r.past}년`, '−' + won(sunk), ''],
+      ['앞으로', '앞으로 나갈 돈', r.N > r.past ? `앞으로 ${r.N - r.past}년 + 팔 때` : '팔 때', '−' + won(fut), ''],
+      ['오늘', '오늘 팔면 남는 돈', `시세 ${short(today.value)} 기준`, swon(today.ownerProfit), cls(today.ownerProfit)]
+    ].map(([ic, n, d, v, c]) => `<div class="li"><div class="ic">${ic}</div><div class="tx"><b>${n}</b><span>${d}</span></div><div class="am tnum ${c}">${v}</div></div>`).join('');
+  }
   $('rpTitle').innerHTML = `${r.N}년 건물주 생활,<br>손에 남은 건 <span class="${cls(r.ownerProfit)}">${swon(r.ownerProfit)}</span>`;
   $('rpMeta').innerHTML = `넣은 돈 ${won(r.injected)} 대비 <b class="${cls(r.ownerProfit)}">${pct(r.ownerProfit / r.injected)}</b> · 연 ${pct(r.ownerIrr, 2)}`;
 
@@ -1205,6 +1271,7 @@ function renderNotes(r){
   items.push(
     '건강보험은 ' + (r.p.hi === 'local' ? '지역가입자의 재산 과세표준에 따른 재산분(근사표)' : '직장가입자라 재산분은 없고') + (res ? '' : ', 임대소득 소득분(7.19%+장기요양)') + '을 넣었어요.',
     `대출 금리는 첫해 ${r.p.rate0}%에서 매년 ${r.p.rateUp}%p씩 오르고, 3년 안에 갚으면 중도상환수수료가 붙어요. 예금 이자에는 15.4%가 과세돼요.`,
+    ...(r.past ? [`이미 지나간 ${r.past}년도 2026년 세법과 지금 금리(${r.p.rate0}%)로 계산했어요. 과거 시세는 산 가격에서 지금 시세까지 매년 같은 비율로 올랐다고 봤어요. 실제로 낸 금액과는 다를 수 있어요.`] : []),
     '모든 세율과 비율은 2026년 기준 추정치예요. 실제 세액은 지역, 면적, 보유 주택 수, 감면 여부에 따라 달라져요.'
   );
   $('notes').innerHTML = items.map(x => `<li>${esc(x)}</li>`).join('');
