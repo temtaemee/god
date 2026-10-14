@@ -112,17 +112,29 @@ details.more[open] summary:after{transform:rotate(-135deg)}
 .coin.in{animation:coinIn 1.1s ease-in forwards}
 @keyframes coinOut{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1;transform:translate(-50%,-80%) scale(1)}100%{opacity:0;transform:translate(-50%,-520%) scale(.85)}}
 @keyframes coinIn{0%{opacity:0;left:var(--fx0);top:var(--fy0)}20%{opacity:1}100%{opacity:0;left:var(--fx1);top:var(--fy1)}}
-.bubble{position:absolute;left:6%;top:6%;max-width:58%;background:var(--card);color:var(--ink);border-radius:14px;padding:8px 12px;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.12);transition:opacity .25s, transform .25s}
-.bubble:after{content:"";position:absolute;left:28px;bottom:-7px;border:7px solid transparent;border-top-color:var(--card);border-bottom:0}
-.bubble.hide{opacity:0;transform:translateY(4px)}
+.bubbles{position:absolute;left:4%;top:4%;max-width:52%;display:flex;flex-direction:column;align-items:flex-start;gap:5px;pointer-events:none}
+.bubble{position:relative;background:var(--card);color:var(--ink);border-radius:14px;padding:7px 11px;font-size:12.5px;font-weight:600;line-height:1.35;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.bubble b{display:inline;margin-left:5px;color:var(--up);font-weight:700;font-variant-numeric:tabular-nums}
+.bubble:not(:last-child){color:var(--ink-2)}
+.bubble:nth-last-child(n+3){color:var(--muted)}.bubble:nth-last-child(n+3) b{opacity:.7}
+.bubble:last-child:after{content:"";position:absolute;left:26px;bottom:-7px;border:7px solid transparent;border-top-color:var(--card);border-bottom:0}
+@media (prefers-reduced-motion:no-preference){.bubble{animation:pop .25s ease-out}}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.96)}}
+@media (max-width:520px){.stage{display:flex;flex-direction:column}.stage svg{order:2}.bubbles{order:1;position:static;max-width:none;height:116px;padding:8px 12px 2px;justify-content:flex-end;gap:4px}.bubble{font-size:11.5px;padding:4px 9px;border-radius:11px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.bubble:last-child:after{left:40px}.fx{top:116px}}
 #char{transform-box:fill-box;transform-origin:50% 100%}
 @media (prefers-reduced-motion:no-preference){
   #char.walk{animation:bob .6s ease-in-out infinite}
+  #char.cry{animation:sob .45s ease-in-out infinite}
+  #char.hop{animation:hop .7s cubic-bezier(.3,0,.4,1) infinite}
   #char.jump{animation:jump .5s ease-out 2}
+  #face-cry .tears{animation:tear 1s ease-in infinite}
   .win{transition:fill .4s}
 }
 @keyframes bob{50%{transform:translateY(-3px)}}
 @keyframes jump{40%{transform:translateY(-14px)}}
+@keyframes hop{0%,100%{transform:translateY(0) scaleY(1)}10%{transform:translateY(0) scaleY(.92)}45%{transform:translateY(-16px) scaleY(1.03)}80%{transform:translateY(0) scaleY(1)}}
+@keyframes sob{0%,100%{transform:translateX(0)}25%{transform:translateX(-1.5px) translateY(1px)}75%{transform:translateX(1.5px) translateY(1px)}}
+@keyframes tear{0%{transform:translateY(0);opacity:.9}100%{transform:translateY(12px);opacity:0}}
 .counters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
 .ctr{background:var(--card);border-radius:16px;padding:12px 12px 11px;box-shadow:var(--shadow);min-width:0}
 .ctr .t{font-size:12px;color:var(--muted);font-weight:500}
@@ -292,6 +304,12 @@ details.tbl summary{cursor:pointer;font-weight:700}
   </div>
 
   <div class="card q">
+    <h2>건강보험은 어떻게 내고 있나요?</h2>
+    <div class="seg" id="hiSeg"><button type="button" id="hi-work" data-hi="work" aria-pressed="true">직장인이에요</button><button type="button" id="hi-local" data-hi="local" aria-pressed="false">지역가입자예요</button></div>
+    <p class="help" id="hiHint"></p>
+  </div>
+
+  <div class="card q">
     <h2 id="growthQ">값은 매년 얼마나 오를까요?</h2>
     <div class="big tnum" id="growthBig"></div>
     <input type="range" id="growth" min="-30" max="30" step="0.5" aria-label="연 시세 상승률">
@@ -304,7 +322,6 @@ details.tbl summary{cursor:pointer;font-weight:700}
       <div class="adv">
         <div class="f"><label for="rate0">첫해 대출 금리 (%)</label><input type="number" id="rate0" step="0.1"></div>
         <div class="f"><label for="rateUp">매년 금리 인상 (%p)</label><input type="number" id="rateUp" step="0.05"></div>
-        <div class="f full"><span class="lb">건강보험</span><div class="seg" id="hiSeg"><button type="button" id="hi-local" data-hi="local" aria-pressed="true">지역가입자</button><button type="button" id="hi-work" data-hi="work" aria-pressed="false">직장가입자</button></div></div>
         <div class="f"><label for="pubRatio">공시가격 / 시세 (%)</label><input type="number" id="pubRatio" step="1"></div>
         <div class="f"><label for="depRate">예금 금리, 세전 (%)</label><input type="number" id="depRate" step="0.1"></div>
         <div class="f"><label for="repay">상환 방식</label><select id="repay"><option value="amort">원리금균등</option><option value="bullet">이자만 내기</option></select></div>
@@ -346,7 +363,7 @@ details.tbl summary{cursor:pointer;font-weight:700}
       <div class="stage" id="stage">
         <svg id="scene" viewBox="0 0 360 230" role="img" aria-label="건물과 건물주 캐릭터"></svg>
         <div class="fx" id="fx"></div>
-        <div class="bubble hide" id="bubble"></div>
+        <div class="bubbles" id="bubbles" aria-live="polite"></div>
       </div>
       <div class="counters">
         <div class="ctr"><div class="t">내가 넣은 돈</div><div class="v tnum" id="cIn">0원</div></div>
@@ -716,7 +733,7 @@ const reduceMotion = (() => { try { return matchMedia('(prefers-reduced-motion: 
 /* ===================== 1. 조건 ===================== */
 const NOW_YEAR = 2026;
 const OWN_DEFAULTS = { res: { price: 6, curPrice: 9, buyYear: 2018, years: 5 }, com: { price: 20, curPrice: 26, buyYear: 2018, years: 5 } };
-let state = { type: 'res', hi: 'local', owned: false, ...DEFAULTS.res, buyYear: 2018, curPrice: 9 };
+let state = { type: 'res', hi: 'work', owned: false, ...DEFAULTS.res, buyYear: 2018, curPrice: 9 };
 function simParams(){
   const past = state.owned ? Math.max(0, NOW_YEAR - state.buyYear) : 0;
   let ahead = Math.max(0, Math.round(state.years)); if (past + ahead < 1) ahead = 1;
@@ -761,6 +778,9 @@ function refreshSetup(){
   const baseV = own ? state.curPrice * EOK : P, aheadY = own ? sp.ahead : state.years;
   $('growthBig').innerHTML = `${state.growth > 0 ? '+' : ''}${state.growth}%<small>${aheadY}년 뒤 ${short(baseV * Math.pow(1 + state.growth / 100, aheadY))}</small>`;
   $('typeHint').textContent = res ? '직접 들어가 사는 1주택자 기준이에요. 전용 85㎡ 이하로 계산해요.' : '상가·사무실로 임대를 놓는 건물이에요. 월세 수입과 공실까지 계산해요.';
+  $('hiHint').textContent = state.hi === 'work'
+    ? (res ? '회사에서 내는 직장가입자는 집이 있어도 건보료가 늘지 않아요.' : '직장가입자는 재산으로는 안 늘지만, 임대소득이 연 2,000만원을 넘으면 넘는 만큼 건보료를 더 내요.')
+    : (res ? '자영업자·프리랜서·은퇴자는 집 공시가격에 따라 건보료가 올라요.' : '자영업자·프리랜서·은퇴자는 건물 가격과 임대소득 둘 다에 건보료가 붙어요.');
   $('startSub').textContent = own ? `${state.buyYear}년에 ${won(P)}에 산 ${res ? '아파트' : '꼬마빌딩'} · 총 ${sp.years}년 보유` : `${res ? '아파트' : '꼬마빌딩'} ${won(P)} · ${state.years}년 보유`;
   $('startBtn').firstChild.textContent = own ? '내 건물 돌아보기' : '건물주 되어보기';
 }
@@ -823,23 +843,40 @@ function sceneSVG(type){
       <text id="tagTxt" x="${bx}" y="${by + 15}" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--ink)"></text></g>
     <g id="sold" visibility="hidden" transform="rotate(-10 ${bx} 120)"><rect x="${bx - 48}" y="104" width="96" height="30" rx="6" fill="var(--card)" stroke="var(--up)" stroke-width="3"/>
       <text x="${bx}" y="125" text-anchor="middle" font-size="15" font-weight="800" fill="var(--up)">매도 완료</text></g>
-    <g id="char" transform="translate(54 120)">
+    <g transform="translate(54 120)"><g id="char">
       <ellipse cx="34" cy="64" rx="9" ry="4" fill="var(--char-ink)" opacity=".15" transform="translate(0 0)"/>
       <ellipse cx="22" cy="60" rx="7" ry="4" fill="var(--char)"/><ellipse cx="46" cy="60" rx="7" ry="4" fill="var(--char)"/>
       <ellipse cx="34" cy="34" rx="30" ry="27" fill="var(--char)"/>
       <path d="M12 18 q22 -26 44 0 z" fill="var(--blue)"/><rect x="8" y="16" width="52" height="5" rx="2.5" fill="var(--blue)"/>
-      <circle class="eye" cx="25" cy="32" r="3" fill="var(--char-ink)"/><circle class="eye" cx="43" cy="32" r="3" fill="var(--char-ink)"/>
       <ellipse cx="18" cy="41" rx="4.5" ry="2.5" fill="var(--blush)"/><ellipse cx="50" cy="41" rx="4.5" ry="2.5" fill="var(--blush)"/>
-      <path id="mouth" d="M27 41 q7 7 14 0" fill="none" stroke="var(--char-ink)" stroke-width="2.4" stroke-linecap="round"/>
-      <path id="sweat" d="M60 20 q5 8 0 11 q-5 -3 0 -11z" fill="var(--sky-2)" stroke="var(--blue)" stroke-width="1.2" visibility="hidden"/>
+      <g id="face-flat"><circle cx="25" cy="32" r="3" fill="var(--char-ink)"/><circle cx="43" cy="32" r="3" fill="var(--char-ink)"/>
+        <path d="M28 43 h12" fill="none" stroke="var(--char-ink)" stroke-width="2.4" stroke-linecap="round"/></g>
+      <g id="face-happy" visibility="hidden"><path d="M21 33 q4 -6 8 0 M39 33 q4 -6 8 0" fill="none" stroke="var(--char-ink)" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M25 39 h18 q-1 10 -9 10 q-8 0 -9 -10z" fill="var(--char-ink)"/><path d="M29 46 q5 3 10 0 q-2 3 -5 3 q-3 0 -5 -3z" fill="var(--up)"/></g>
+      <g id="face-cry" visibility="hidden"><path d="M21 31 q4 4 8 0 M39 31 q4 4 8 0" fill="none" stroke="var(--char-ink)" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M26 47 q8 -9 16 0" fill="none" stroke="var(--char-ink)" stroke-width="2.6" stroke-linecap="round"/>
+        <g class="tears" fill="var(--blue)" opacity=".85"><path d="M23 34 q-3 6 0 8 q3 -2 0 -8z"/><path d="M45 34 q-3 6 0 8 q3 -2 0 -8z"/></g></g>
+      <g id="face-shock" visibility="hidden"><path d="M19 24 q5 -4 10 -1 M39 23 q5 -3 10 1" fill="none" stroke="var(--char-ink)" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="25" cy="32" r="5" fill="var(--card)" stroke="var(--char-ink)" stroke-width="1.8"/><circle cx="43" cy="32" r="5" fill="var(--card)" stroke="var(--char-ink)" stroke-width="1.8"/>
+        <circle cx="25" cy="32" r="2.2" fill="var(--char-ink)"/><circle cx="43" cy="32" r="2.2" fill="var(--char-ink)"/>
+        <ellipse cx="34" cy="45" rx="4.5" ry="5.5" fill="var(--char-ink)"/>
+        <path d="M62 14 v8 M62 26 v1.5" stroke="var(--up)" stroke-width="3" stroke-linecap="round"/></g>
       <g transform="translate(52 40)"><rect width="20" height="14" rx="3" fill="var(--up)"/><rect x="12" y="4" width="8" height="6" rx="2" fill="var(--card)"/></g>
-    </g>`;
+    </g></g>`;
   return b;
 }
-const MOUTH = { happy: 'M27 41 q7 7 14 0', flat: 'M27 43 h14', sad: 'M27 45 q7 -6 14 0' };
-function mood(m, sweat){
-  $('mouth').setAttribute('d', MOUTH[m] || MOUTH.flat);
-  $('sweat').setAttribute('visibility', sweat ? 'visible' : 'hidden');
+// 표정: 좋으면 웃으며 콩콩 뛰고(happy), 안 좋으면 눈물 흘리며 울어요(sad)
+function mood(m){
+  const face = m === 'happy' ? 'happy' : m === 'sad' ? 'cry' : m === 'shock' ? 'shock' : 'flat';
+  for (const k of ['flat', 'happy', 'cry', 'shock']) $('face-' + k).setAttribute('visibility', k === face ? 'visible' : 'hidden');
+  const c = $('char'); c.classList.toggle('hop', m === 'happy'); c.classList.toggle('cry', m === 'sad');
+}
+let moodTimer = 0;
+function feel(m, temp, ms = 1500){ // temp: 잠깐 그 표정을 짓고 원래 기분으로 돌아가요
+  if (!temp){ sim.mood = m; if (performance.now() >= (sim.tempUntil || 0)) mood(m); return; }
+  clearTimeout(moodTimer);
+  const d = ms / Math.sqrt(sim.speed); sim.tempUntil = performance.now() + d;
+  mood(m); moodTimer = setTimeout(() => mood(sim.mood), d);
 }
 
 function buildTimeline(r){
@@ -889,7 +926,13 @@ function buildTimeline(r){
     cumCost[m + 1] = cumCost[m] + (y.interest + y.mgmt + y.repair + y.opex + y.hi) / 12;
     cumInj[m + 1] = cumInj[m] + y.inject / 12;
   }
-  return { ev, S, End: S + 4.6, cumCost, cumInj, lumpAt };
+  // 매달 나가는 돈은 1년에 한 번, 연말에 항목별로 한 해 합계를 보여줘요
+  const monthly = [];
+  r.years.forEach((y, i) => {
+    const items = [['대출이자', y.interest], [res ? '관리비' : '운영비', y.mgmt + y.repair + y.opex], ['건보료', y.hi]].filter(x => x[1] > 0);
+    if (items.length) monthly.push({ t: i * 12 + 10.7, name: items.map(x => x[0]).join('·'), amt: items.reduce((a, x) => a + x[1], 0) });
+  });
+  return { ev, S, End: S + 4.6, cumCost, cumInj, lumpAt, monthly };
 }
 
 let TL = null;
@@ -901,12 +944,12 @@ function startSim(){
   $('scene').innerHTML = sceneSVG(r.p.type);
   $('feed').innerHTML = ''; $('fx').innerHTML = '';
   $('progMid').textContent = r.past ? (r.past < r.N ? `지난 ${r.past}년 · 앞으로 ${r.N - r.past}년` : `지난 ${r.past}년`) : `갖고 있는 ${r.N}년`;
-  $('bubble').className = 'bubble hide';
+  $('bubbles').innerHTML = '';
   $('playBtn').textContent = '일시정지'; $('skipBtn').textContent = '결과 바로 보기';
   const old = $('stage').querySelector('.done-card'); if (old) old.remove();
-  Object.assign(sim, { tau: -6.2, paused: false, done: false, fired: 0, lastMonth: -1, acqCost: 0, lumpCost: 0, saleCost: 0, injLump: 0, sparkPts: null, last: performance.now(), mood: 'happy', nowTxt: '–' });
+  Object.assign(sim, { tau: -6.2, paused: false, done: false, fired: 0, lastMonth: -1, acqCost: 0, lumpCost: 0, saleCost: 0, injLump: 0, sparkPts: null, mi: 0, tempUntil: 0, last: performance.now(), mood: 'happy', nowTxt: '–' });
   $('cNow').textContent = '–'; $('cNow').className = 'v tnum';
-  mood('happy', false);
+  feel('flat');
   drawSpark(true);
   show('sSim');
   loop();
@@ -927,15 +970,18 @@ function loop(){
   sim.raf = requestAnimationFrame(loop);
 }
 
-let bubbleTimer = 0;
-function say(text){
-  const b = $('bubble'); b.textContent = text; b.className = 'bubble';
-  clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => b.className = 'bubble hide', 1700 / Math.sqrt(sim.speed));
+// 말풍선: 최대 4개까지 쌓이고, 5번째가 오면 가장 오래된 것부터 사라져요
+function say(text, money, tail){
+  const box = $('bubbles'), b = document.createElement('div'); b.className = 'bubble';
+  b.innerHTML = esc(text) + (money ? `<b>${esc(money)}</b>` : '') + (tail ? esc(tail) : '');
+  box.appendChild(b);
+  while (box.childElementCount > 4) box.firstElementChild.remove();
 }
-function coin(dir, label){
+const OUT_NAME = { 세금: '취득세', 중개: '중개보수', 등기: '법무사·등기비', 이사: '이사비', 재산: '재산세', 종부: '종부세', 소득: '임대소득세', 수수료: '중도상환수수료', 양도: '양도세' };
+function coin(dir, label, big){
   if (reduceMotion) return;
-  const fx = $('fx'); if (!label && fx.childElementCount > 5) return; if (fx.childElementCount > 12) fx.firstElementChild.remove();
-  const el = document.createElement('div'); el.className = 'coin ' + dir + (label ? '' : ' small');
+  const fx = $('fx'); if (!label && !big && fx.childElementCount > 5) return; if (fx.childElementCount > 12) fx.firstElementChild.remove();
+  const el = document.createElement('div'); el.className = 'coin ' + dir + (label || big ? '' : ' small');
   el.innerHTML = `<i>₩</i>` + (label ? `<span class="${dir === 'out' ? 'up' : 'down'}">${label}</span>` : '');
   const charX = 24.5, charY = 66, bx = 68, by = 55;
   if (dir === 'out'){ el.style.left = (charX + (Math.random() * 8 - 4)) + '%'; el.style.top = charY + '%'; }
@@ -943,7 +989,7 @@ function coin(dir, label){
   el.addEventListener('animationend', () => el.remove());
   fx.appendChild(el);
 }
-function jump(){ const c = $('char'); c.classList.remove('jump'); void c.getBBox(); c.classList.add('jump'); }
+function jump(){ const c = $('char'); c.classList.remove('jump'); void c.getBBox(); c.classList.add('jump'); c.addEventListener('animationend', () => c.classList.remove('jump'), { once: true }); }
 function feed(e){
   const f = $('feed');
   const amt = e.amt != null ? `<div class="am ${e.kind === 'out' ? '' : e.kind === 'in' ? 'down' : ''}">${e.kind === 'out' ? '−' : e.final ? '' : ''}${won(Math.abs(e.amt))}</div>` : '<div></div>';
@@ -959,13 +1005,16 @@ function fire(e){
     if (e.t < 0) sim.acqCost += e.amt;
     else if (e.t < TL.S) sim.lumpCost += e.amt;
     else if (!e.final && e.ic !== '대출') sim.saleCost += e.amt;
-    if (!e.final && e.ic !== '대출') coin('out', '−' + short(e.amt));
+    if (!e.final && e.ic !== '대출') coin('out', null, true);
   }
   if (e.inject) sim.injLump += e.inject;
   if (e.t < 0 && e.kind === 'out' && e.amt) sim.injLump += e.amt;
-  if (e.kind === 'in' && !e.final) coin('in', '+' + short(result.years[0].rentIncome / 12));
-  if (e.bubble) say(e.bubble);
-  if (e.mood){ sim.mood = e.mood; mood(e.mood, !!e.sweat); if (e.sweat) setTimeout(() => !sim.done && mood(sim.mood, false), 1400); }
+  if (e.kind === 'in' && !e.final) coin('in', null, true);
+  if (e.kind === 'out' && e.amt != null && !e.final) say(`아 ${OUT_NAME[e.ic] || e.title} 나갔어`, '−' + won(e.amt));
+  else if (e.bubble) say(e.bubble);
+  if (e.yearEnd || e.final) feel(e.mood);
+  else if (e.kind === 'out' && e.amt != null) feel('sad', true);
+  else if (e.mood) feel(e.mood, true);
   if (e.jump) jump();
   if (e.vacant){ const v = $('vacant'); if (v){ v.setAttribute('visibility', 'visible'); setTimeout(() => v.setAttribute('visibility', 'hidden'), 4 * msPerUnit(5) / sim.speed); } }
   if (e.yearEnd){ const y = result.years[e.yearEnd - 1]; $('cNow').textContent = swon(y.ownerProfit); $('cNow').className = 'v tnum ' + cls(y.ownerProfit); }
@@ -973,9 +1022,11 @@ function fire(e){
   if (e.final){ $('cNow').textContent = swon(result.ownerProfit); $('cNow').className = 'v tnum ' + cls(result.ownerProfit); }
 }
 
+const res2 = r => r.p.type === 'res';
 function frame(){
   const r = result, t = sim.tau, S = TL.S;
   while (sim.fired < TL.ev.length && TL.ev[sim.fired].t <= t) fire(TL.ev[sim.fired++]);
+  while (sim.mi < TL.monthly.length && TL.monthly[sim.mi].t <= t){ const x = TL.monthly[sim.mi++]; say(`올해 나간 ${x.name}${/[료자비]$/.test(x.name) ? '가' : '이'} `, '−' + won(x.amt), '이라고?!'); feel('shock', true); jump(); }
   const m = Math.max(0, Math.min(S, t));
   const mi = Math.floor(m), fr = m - mi;
   const cont = mi >= S ? TL.cumCost[S] : TL.cumCost[mi] + (TL.cumCost[mi + 1] - TL.cumCost[mi]) * fr;
