@@ -1,0 +1,1223 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style></head><body>
+<title>건물주 한 바퀴</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: 앱처럼 가운데 한 줄 — 조건 입력 → 한 화면 애니메이션 → 결산 보고서. 금융 앱식 흰 카드 + 파랑 포인트, 이익 빨강/손실 파랑(국내 관례) */
+:root{
+  --bg:#f2f4f6; --card:#ffffff; --fill:#f2f4f6; --fill-2:#e5e8eb; --ink:#191f28; --ink-2:#4e5968; --muted:#8b95a1; --line:#e5e8eb;
+  --blue:#3182f6; --blue-press:#1b64da; --blue-soft:#e8f3ff; --on-blue:#ffffff;
+  --up:#f04452; --down:#3182f6; --warn:#ff9f0a;
+  --sky:#dcecff; --sky-2:#f4f9ff; --sun:#ffc94a; --ground:#cfe8c8; --road:#e3e7ea;
+  --bld:#ffffff; --bld-edge:#c9d3de; --win:#dbe7f5; --win-on:#ffd76a; --awning:#3182f6;
+  --char:#ffcb8e; --char-ink:#3a2a1f; --blush:#ff9c8a; --coin:#ffc331; --coin-ink:#8a5a00;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --shadow:0 2px 12px rgba(0,23,51,.06);
+  --font:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101013; --card:#1b1b20; --fill:#26262d; --fill-2:#32323a; --ink:#f2f3f5; --ink-2:#b0b8c1; --muted:#8b95a1; --line:#2c2c35;
+  --blue:#4c94f8; --blue-press:#3182f6; --blue-soft:#1b2a40; --on-blue:#ffffff; --up:#ff5b69; --down:#4c94f8; --warn:#ffb340;
+  --sky:#1d2a44; --sky-2:#141d30; --sun:#ffd76a; --ground:#23362a; --road:#2a2f36;
+  --bld:#2b3140; --bld-edge:#3b4456; --win:#3a4458; --win-on:#ffd76a; --awning:#4c94f8;
+  --char:#f5bd80; --char-ink:#2a1d14; --blush:#ef8a7a; --coin:#ffc331; --coin-ink:#6b4500;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --shadow:none; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#101013; --card:#1b1b20; --fill:#26262d; --fill-2:#32323a; --ink:#f2f3f5; --ink-2:#b0b8c1; --muted:#8b95a1; --line:#2c2c35;
+  --blue:#4c94f8; --blue-press:#3182f6; --blue-soft:#1b2a40; --on-blue:#ffffff; --up:#ff5b69; --down:#4c94f8; --warn:#ffb340;
+  --sky:#1d2a44; --sky-2:#141d30; --sun:#ffd76a; --ground:#23362a; --road:#2a2f36;
+  --bld:#2b3140; --bld-edge:#3b4456; --win:#3a4458; --win-on:#ffd76a; --awning:#4c94f8;
+  --char:#f5bd80; --char-ink:#2a1d14; --blush:#ef8a7a; --coin:#ffc331; --coin-ink:#6b4500;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --shadow:none; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0}
+.tnum{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.up{color:var(--up)}.down{color:var(--down)}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.app{max-width:560px;margin:0 auto;padding-inline:20px;padding-block:20px 120px}
+.card{background:var(--card);border-radius:20px;padding:22px 20px;box-shadow:var(--shadow);min-width:0}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+/* ---------- 1. 조건 ---------- */
+.hero{padding:12px 4px 22px;display:flex;flex-direction:column;gap:10px}
+.hero svg{width:132px;height:auto}
+.hero h1{font-size:28px;font-weight:800;letter-spacing:-.03em}
+.hero p{color:var(--ink-2);font-size:16px}
+.q h2{font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+.q .help{color:var(--muted);font-size:13px;margin-top:10px}
+.types{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tcard{border:2px solid var(--line);background:var(--card);border-radius:16px;padding:14px 12px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:border-color .15s,background .15s}
+.tcard svg{width:56px;height:56px;margin-bottom:6px}
+.tcard b{font-size:16px;font-weight:700}
+.tcard span{font-size:12.5px;color:var(--muted)}
+.tcard[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-soft)}
+.big{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:-4px 0 12px}
+.big small{font-size:15px;color:var(--muted);font-weight:500;margin-left:6px;letter-spacing:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{border:0;background:var(--fill);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--blue);color:var(--on-blue)}
+input[type=range]{width:100%;accent-color:var(--blue);margin:4px 0 0;height:28px}
+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.row-in{display:flex;align-items:center;gap:8px;margin-top:12px}
+.row-in input{flex:1;min-width:0}
+input[type=number],select{font:inherit;font-size:15px;color:var(--ink);background:var(--fill);border:0;border-radius:12px;padding:11px 12px;width:100%}
+.unit{color:var(--muted);font-size:14px;white-space:nowrap}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--fill);border-radius:12px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;color:var(--ink-2);font-weight:600;padding:9px 6px;border-radius:9px;cursor:pointer;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+details.more summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:17px}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary:after{content:"";width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-right:4px;transition:transform .2s}
+details.more[open] summary:after{transform:rotate(-135deg)}
+.adv{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;margin-top:18px}
+.adv .f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.adv .f>label,.adv .f>.lb{font-size:12.5px;color:var(--ink-2);font-weight:500}
+.adv .full{grid-column:1/-1}
+.adv .ck{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
+.ghost{border:0;background:var(--fill);border-radius:12px;padding:11px;font-weight:600;color:var(--ink-2);cursor:pointer;font-size:14px}
+.cta-bar{position:fixed;left:0;right:0;bottom:0;padding:12px 20px calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 70%,transparent);z-index:20}
+.cta{display:block;width:100%;max-width:520px;margin:0 auto;border:0;background:var(--blue);color:var(--on-blue);font-size:17px;font-weight:700;border-radius:16px;padding:16px;cursor:pointer}
+.cta:active{background:var(--blue-press)}
+.cta small{display:block;font-size:12.5px;font-weight:500;opacity:.85}
+
+/* ---------- 2. 애니메이션 ---------- */
+.sim{max-width:980px;margin:0 auto;padding-inline:20px;padding-block:14px 40px}
+.sim-top{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:10px}
+.icon-btn{border:0;background:transparent;color:var(--ink-2);font-weight:600;font-size:14px;cursor:pointer;padding:8px 4px}
+.when{text-align:center}
+.when b{display:block;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.when span{font-size:12.5px;color:var(--muted)}
+.seg.speed{grid-auto-columns:auto;padding:3px}
+.seg.speed button{padding:6px 9px;font-size:12.5px}
+@media (max-width:520px){.sim-top{flex-wrap:wrap}.sim-top .when{flex:1}.seg.speed{order:3;width:100%;grid-auto-columns:1fr}}
+.prog{position:relative;height:6px;background:var(--fill-2);border-radius:99px;margin:4px 0 6px}
+.prog i{position:absolute;left:0;top:0;bottom:0;background:var(--blue);border-radius:99px;width:0}
+.prog-l{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:12px}
+.sim-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:820px){.sim-grid{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;border-radius:20px;overflow:hidden;background:var(--sky);box-shadow:var(--shadow)}
+.stage svg{display:block;width:100%;height:auto}
+.fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.coin{position:absolute;display:flex;align-items:center;gap:4px;transform:translate(-50%,-50%);font-size:12px;font-weight:700;white-space:nowrap}
+.coin.small i{width:13px;height:13px;font-size:7px;border-width:1.5px}
+.coin i{width:18px;height:18px;border-radius:50%;background:var(--coin);border:2px solid var(--coin-ink);display:inline-grid;place-items:center;font-style:normal;font-size:9px;color:var(--coin-ink);font-weight:800}
+.coin span{background:var(--card);border-radius:8px;padding:1px 6px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.coin.out{animation:coinOut 1.3s ease-out forwards}
+.coin.in{animation:coinIn 1.1s ease-in forwards}
+@keyframes coinOut{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1;transform:translate(-50%,-80%) scale(1)}100%{opacity:0;transform:translate(-50%,-520%) scale(.85)}}
+@keyframes coinIn{0%{opacity:0;left:var(--fx0);top:var(--fy0)}20%{opacity:1}100%{opacity:0;left:var(--fx1);top:var(--fy1)}}
+.bubble{position:absolute;left:6%;top:6%;max-width:58%;background:var(--card);color:var(--ink);border-radius:14px;padding:8px 12px;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.12);transition:opacity .25s, transform .25s}
+.bubble:after{content:"";position:absolute;left:28px;bottom:-7px;border:7px solid transparent;border-top-color:var(--card);border-bottom:0}
+.bubble.hide{opacity:0;transform:translateY(4px)}
+#char{transform-box:fill-box;transform-origin:50% 100%}
+@media (prefers-reduced-motion:no-preference){
+  #char.walk{animation:bob .6s ease-in-out infinite}
+  #char.jump{animation:jump .5s ease-out 2}
+  .win{transition:fill .4s}
+}
+@keyframes bob{50%{transform:translateY(-3px)}}
+@keyframes jump{40%{transform:translateY(-14px)}}
+.counters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.ctr{background:var(--card);border-radius:16px;padding:12px 12px 11px;box-shadow:var(--shadow);min-width:0}
+.ctr .t{font-size:12px;color:var(--muted);font-weight:500}
+.ctr .v{font-size:17px;font-weight:800;margin-top:2px;letter-spacing:-.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:480px){.ctr .v{font-size:14px;white-space:normal;line-height:1.3}}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.spark h3,.feed-card h3{font-size:15px;font-weight:700;margin-bottom:2px}
+.spark .sub{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.spark svg{display:block;width:100%}
+.spark text{font-size:10.5px;fill:var(--muted);font-family:var(--font)}
+.mini-leg{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-bottom:4px}
+.mini-leg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.feed{display:flex;flex-direction:column;gap:2px;margin-top:6px;min-height:240px}
+.ev{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.ev:last-child{border-bottom:0}
+.ev .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--fill)}
+.ev .ic.out{background:color-mix(in srgb,var(--up) 14%,transparent);color:var(--up)}
+.ev .ic.in{background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
+.ev .ic.info{color:var(--ink-2)}
+.ev .tx b{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev .tx span{font-size:12px;color:var(--muted)}
+.ev .am{font-size:14px;font-weight:700;white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){.ev.new{animation:slideIn .35s ease-out}}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}}
+.sim-ctrl{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:12px}
+.sim-ctrl .cta{padding:13px;font-size:15px}
+.done-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--card);border-radius:20px;padding:18px 20px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.18);width:min(86%,320px)}
+.done-card b{display:block;font-size:13px;color:var(--muted);font-weight:600}
+.done-card strong{display:block;font-size:26px;font-weight:800;letter-spacing:-.03em;margin:2px 0 12px}
+
+/* ---------- 3. 보고서 ---------- */
+.rp-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+.rp-hero{padding:14px 4px 22px;display:flex;flex-direction:column;gap:8px}
+.rp-hero .tag{font-size:14px;color:var(--ink-2);font-weight:600}
+.rp-hero h1{font-size:27px;font-weight:800;letter-spacing:-.035em;line-height:1.35}
+.rp-hero .meta{font-size:15px;color:var(--ink-2)}
+.card h2{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.card .sub{font-size:13.5px;color:var(--muted);margin-top:4px;margin-bottom:16px}
+.vs{display:flex;flex-direction:column;gap:14px}
+.vs-row .lb{display:flex;justify-content:space-between;font-size:14px;color:var(--ink-2);margin-bottom:6px;gap:8px}
+.vs-row .lb b{color:var(--ink);font-weight:700}
+.vs-bar{height:14px;background:var(--fill);border-radius:99px;overflow:hidden}
+.vs-bar i{display:block;height:100%;border-radius:99px}
+.vs-res{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding-top:14px;font-weight:700;gap:8px}
+.vs-res span:last-child{font-size:20px;font-weight:800}
+.list{display:flex;flex-direction:column}
+.li{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0}
+.li .ic{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--fill);font-weight:800;font-size:13px;color:var(--ink-2)}
+.li .tx b{display:block;font-size:15px;font-weight:600}
+.li .tx span{font-size:12.5px;color:var(--muted)}
+.li .am{text-align:right;font-weight:700;font-size:15px;white-space:nowrap}
+.li .am small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k{background:var(--fill);border-radius:14px;padding:13px 14px;min-width:0}
+.k .t{font-size:12.5px;color:var(--ink-2)}
+.k .v{font-size:18px;font-weight:800;letter-spacing:-.03em;margin-top:2px}
+.k .d{font-size:11.5px;color:var(--muted);margin-top:2px}
+.cmp{display:flex;flex-direction:column;gap:6px}
+.cmp-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0}
+.cmp-row .rk{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--fill);color:var(--ink-2)}
+.cmp-row .rk.first{background:var(--blue);color:var(--on-blue)}
+.cmp-row .nm{font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px}
+.cmp-row .track{grid-column:2/3;height:8px;background:var(--fill);border-radius:99px;position:relative;overflow:hidden;margin-top:6px}
+.cmp-row .track i{position:absolute;top:0;bottom:0;border-radius:99px}
+.cmp-row .track em{position:absolute;top:0;bottom:0;width:2px;background:var(--muted)}
+.cmp-row .r{text-align:right;grid-row:1/3;grid-column:3}
+.cmp-row .r b{display:block;font-size:16px;font-weight:800;white-space:nowrap}
+.cmp-row .r span{font-size:12px;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.verdict{margin-top:12px;background:var(--blue-soft);border-radius:14px;padding:13px 14px;font-size:14px;color:var(--ink)}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart text{fill:var(--muted);font-family:var(--font);font-size:11px}
+.chart .grid-line{stroke:var(--line);stroke-width:1}
+.chart .axis{stroke:var(--muted);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 10px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend i.ln{height:3px;border-radius:2px;width:16px}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 11px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.14);min-width:180px;z-index:5}
+.tip .h{font-weight:700;margin-bottom:4px;color:var(--ink)}
+.tip .rw{display:flex;justify-content:space-between;gap:14px;color:var(--ink-2)}
+.tip .rw b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.rc-sec{padding:12px 0 8px;border-top:1px solid var(--line)}
+.rc-sec:first-of-type{border-top:0;padding-top:0}
+.rc-hd{display:flex;justify-content:space-between;font-weight:700;font-size:15px;margin-bottom:6px}
+.rc-ln{display:flex;justify-content:space-between;gap:10px;color:var(--ink-2);padding:3px 0;font-size:14px}
+.rc-ln span:last-child{color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rc-ln.nil span{color:var(--muted)}
+.rc-total{display:flex;justify-content:space-between;border-top:2px solid var(--ink);margin-top:8px;padding-top:12px;font-weight:800;font-size:17px}
+.rc-foot{color:var(--muted);font-size:12.5px;margin-top:8px}
+.pct-pill{display:inline-block;background:color-mix(in srgb,var(--up) 12%,transparent);color:var(--up);border-radius:8px;padding:2px 8px;font-size:12.5px;font-weight:700;margin-left:6px;vertical-align:2px}
+.notes ul{margin:12px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:7px;font-size:13.5px;color:var(--ink-2)}
+.tbl-wrap{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;white-space:nowrap}
+th,td{padding:8px 9px;text-align:right;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--ink-2);background:var(--fill)}
+th:first-child,td:first-child{text-align:left}
+td{font-variant-numeric:tabular-nums}
+details.tbl summary{cursor:pointer;font-weight:700}
+.disclaim{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+</style>
+
+<!-- ============ 1. 조건 ============ -->
+<section id="sSetup">
+<div class="app stack">
+  <div class="hero">
+    <svg viewBox="0 0 132 80" aria-hidden="true">
+      <rect x="62" y="10" width="44" height="62" rx="4" fill="var(--bld)" stroke="var(--bld-edge)" stroke-width="2"/>
+      <g fill="var(--win-on)"><rect x="70" y="18" width="8" height="8" rx="1.5"/><rect x="90" y="18" width="8" height="8" rx="1.5"/><rect x="70" y="34" width="8" height="8" rx="1.5"/><rect x="90" y="34" width="8" height="8" rx="1.5"/><rect x="70" y="50" width="8" height="8" rx="1.5"/></g>
+      <rect x="88" y="54" width="12" height="18" rx="2" fill="var(--blue)"/>
+      <ellipse cx="34" cy="56" rx="22" ry="20" fill="var(--char)"/>
+      <circle cx="27" cy="52" r="2.6" fill="var(--char-ink)"/><circle cx="41" cy="52" r="2.6" fill="var(--char-ink)"/>
+      <ellipse cx="22" cy="59" rx="3.5" ry="2" fill="var(--blush)"/><ellipse cx="46" cy="59" rx="3.5" ry="2" fill="var(--blush)"/>
+      <path d="M29 60 q5 5 10 0" fill="none" stroke="var(--char-ink)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M17 41 q17 -16 34 0 z" fill="var(--blue)"/>
+      <rect x="12" y="74" width="112" height="3" rx="1.5" fill="var(--fill-2)"/>
+    </svg>
+    <h1>건물주 한 바퀴</h1>
+    <p>사서, 갖고 있다가, 팔 때까지. 실제로 빠져나가는 돈을 한 해씩 같이 따라가 볼게요.</p>
+  </div>
+
+  <div class="card q">
+    <h2>어떤 건물주가 되어볼까요?</h2>
+    <div class="types" id="typeSeg">
+      <button type="button" class="tcard" data-type="res" id="t-res" aria-pressed="true">
+        <svg viewBox="0 0 56 56" aria-hidden="true"><rect x="14" y="6" width="28" height="46" rx="3" fill="var(--bld)" stroke="var(--bld-edge)" stroke-width="2"/><g fill="var(--blue)"><rect x="19" y="12" width="6" height="6" rx="1"/><rect x="31" y="12" width="6" height="6" rx="1"/><rect x="19" y="23" width="6" height="6" rx="1"/><rect x="31" y="23" width="6" height="6" rx="1"/><rect x="19" y="34" width="6" height="6" rx="1"/><rect x="31" y="34" width="6" height="6" rx="1"/></g></svg>
+        <b>아파트</b><span>내가 사는 1주택</span></button>
+      <button type="button" class="tcard" data-type="com" id="t-com" aria-pressed="false">
+        <svg viewBox="0 0 56 56" aria-hidden="true"><rect x="8" y="14" width="40" height="38" rx="3" fill="var(--bld)" stroke="var(--bld-edge)" stroke-width="2"/><g fill="var(--blue)"><rect x="13" y="19" width="8" height="6" rx="1"/><rect x="24" y="19" width="8" height="6" rx="1"/><rect x="35" y="19" width="8" height="6" rx="1"/><rect x="13" y="29" width="8" height="6" rx="1"/><rect x="24" y="29" width="8" height="6" rx="1"/><rect x="35" y="29" width="8" height="6" rx="1"/></g><path d="M8 40h40l-3 5H11z" fill="var(--up)"/></svg>
+        <b>꼬마빌딩</b><span>세 받는 상가건물</span></button>
+    </div>
+    <p class="help" id="typeHint"></p>
+  </div>
+
+  <div class="card q">
+    <h2>얼마짜리를 살까요?</h2>
+    <div class="big tnum" id="priceBig"></div>
+    <div class="chips" id="priceChips"></div>
+    <div class="row-in"><input type="number" id="price" min="0.5" step="0.5" aria-label="매입가 직접 입력"><span class="unit">억원 직접 입력</span></div>
+  </div>
+
+  <div class="card q">
+    <h2>몇 년 동안 갖고 있을까요?</h2>
+    <div class="big tnum" id="yearsBig"></div>
+    <input type="range" id="years" min="1" max="30" step="1" aria-label="보유 기간">
+    <div class="ends"><span>1년</span><span>30년</span></div>
+  </div>
+
+  <div class="card q">
+    <h2>대출은 얼마나 받을까요?</h2>
+    <div class="big tnum" id="ltvBig"></div>
+    <input type="range" id="ltv" min="0" max="80" step="5" aria-label="대출 비율">
+    <div class="ends"><span>대출 없음</span><span>매입가의 80%</span></div>
+  </div>
+
+  <div class="card q">
+    <h2>값은 매년 얼마나 오를까요?</h2>
+    <div class="big tnum" id="growthBig"></div>
+    <input type="range" id="growth" min="-5" max="10" step="0.5" aria-label="연 시세 상승률">
+    <div class="ends"><span>−5%</span><span>+10%</span></div>
+  </div>
+
+  <div class="card">
+    <details class="more" id="moreBox">
+      <summary>세부 조건</summary>
+      <div class="adv">
+        <div class="f"><label for="rate0">첫해 대출 금리 (%)</label><input type="number" id="rate0" step="0.1"></div>
+        <div class="f"><label for="rateUp">매년 금리 인상 (%p)</label><input type="number" id="rateUp" step="0.05"></div>
+        <div class="f full"><span class="lb">건강보험</span><div class="seg" id="hiSeg"><button type="button" id="hi-local" data-hi="local" aria-pressed="true">지역가입자</button><button type="button" id="hi-work" data-hi="work" aria-pressed="false">직장가입자</button></div></div>
+        <div class="f"><label for="pubRatio">공시가격 / 시세 (%)</label><input type="number" id="pubRatio" step="1"></div>
+        <div class="f"><label for="depRate">예금 금리, 세전 (%)</label><input type="number" id="depRate" step="0.1"></div>
+        <div class="f"><label for="repay">상환 방식</label><select id="repay"><option value="amort">원리금균등</option><option value="bullet">이자만 내기</option></select></div>
+        <div class="f"><label for="term">대출 만기 (년)</label><input type="number" id="term" step="1" min="1"></div>
+        <div class="f res-only"><label for="mgmt">월 관리비 (만원)</label><input type="number" id="mgmt" step="1" placeholder="자동"></div>
+        <div class="f res-only"><label for="repair">연 수선·보험 (만원)</label><input type="number" id="repair" step="10"></div>
+        <div class="f res-only"><label for="moving">이사·입주 비용 (만원)</label><input type="number" id="moving" step="10"></div>
+        <div class="f res-only"><label for="jeonseRatio">전세가율 (%)</label><input type="number" id="jeonseRatio" step="1"></div>
+        <div class="f res-only"><label for="wolseDep">월세 보증금 / 전세금 (%)</label><input type="number" id="wolseDep" step="5"></div>
+        <div class="f res-only"><label for="conv">전월세 전환율 (%)</label><input type="number" id="conv" step="0.1"></div>
+        <label class="ck full res-only" for="cap6"><input type="checkbox" id="cap6"> 수도권·규제지역 주택담보대출 6억원 한도 적용</label>
+        <div class="f com-only"><label for="yield">표면 임대수익률 (%)</label><input type="number" id="yield" step="0.1"></div>
+        <div class="f com-only"><label for="rentUp">임대료 상승률 (%/년)</label><input type="number" id="rentUp" step="0.5"></div>
+        <div class="f com-only"><label for="vacancy">공실률 (%)</label><input type="number" id="vacancy" step="1"></div>
+        <div class="f com-only"><label for="opex">운영비 / 임대수입 (%)</label><input type="number" id="opex" step="1"></div>
+        <div class="f com-only"><label for="landShare">토지 비중 (%)</label><input type="number" id="landShare" step="5"></div>
+        <div class="f com-only"><label for="incomeTax">임대소득 한계세율 (%)</label><input type="number" id="incomeTax" step="0.1"></div>
+        <button type="button" class="ghost full" id="resetBtn">기본값으로 되돌리기</button>
+      </div>
+    </details>
+  </div>
+  <p class="disclaim">2026년 세법을 단순화한 추정치예요. 실제 세금은 지역, 면적, 보유 주택 수에 따라 달라져요.</p>
+</div>
+<div class="cta-bar"><button type="button" class="cta" id="startBtn">건물주 되어보기<small id="startSub"></small></button></div>
+</section>
+
+<!-- ============ 2. 애니메이션 ============ -->
+<section id="sSim" hidden>
+<div class="sim">
+  <div class="sim-top">
+    <button type="button" class="icon-btn" id="backSetup">‹ 조건</button>
+    <div class="when"><b id="simWhen">계약하는 날</b><span id="simSub"></span></div>
+    <div class="seg speed" id="speedSeg"><button type="button" data-s="0.25" aria-pressed="false">0.25x</button><button type="button" data-s="0.5" aria-pressed="false">0.5x</button><button type="button" data-s="1" aria-pressed="true">1x</button><button type="button" data-s="2" aria-pressed="false">2x</button><button type="button" data-s="4" aria-pressed="false">4x</button><button type="button" data-s="10" aria-pressed="false">10x</button></div>
+  </div>
+  <div class="prog"><i id="progBar"></i></div>
+  <div class="prog-l"><span>살 때</span><span id="progMid">갖고 있는 10년</span><span>팔 때</span></div>
+  <div class="sim-grid">
+    <div>
+      <div class="stage" id="stage">
+        <svg id="scene" viewBox="0 0 360 230" role="img" aria-label="건물과 건물주 캐릭터"></svg>
+        <div class="fx" id="fx"></div>
+        <div class="bubble hide" id="bubble"></div>
+      </div>
+      <div class="counters">
+        <div class="ctr"><div class="t">내가 넣은 돈</div><div class="v tnum" id="cIn">0원</div></div>
+        <div class="ctr"><div class="t">숨은 비용</div><div class="v tnum up" id="cCost">0원</div></div>
+        <div class="ctr"><div class="t">지금 팔면</div><div class="v tnum" id="cNow">–</div></div>
+      </div>
+      <div class="sim-ctrl">
+        <button type="button" class="ghost" id="playBtn">일시정지</button>
+        <button type="button" class="cta" id="skipBtn">결과 바로 보기</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card spark">
+        <h3>값이 오른 만큼 vs 나간 돈</h3>
+        <p class="sub">두 선이 만나야 겨우 본전이에요</p>
+        <div class="mini-leg"><span><i style="background:var(--up)"></i>시세 차익</span><span><i style="background:var(--ink-2)"></i>쌓인 숨은 비용</span></div>
+        <svg id="spark" viewBox="0 0 320 120" preserveAspectRatio="none" height="120"></svg>
+      </div>
+      <div class="card feed-card">
+        <h3>통장 내역</h3>
+        <div class="feed" id="feed"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ 3. 보고서 ============ -->
+<section id="sReport" hidden>
+<div class="app stack">
+  <div class="rp-top"><button type="button" class="icon-btn" id="rpEdit">‹ 조건 바꾸기</button><button type="button" class="icon-btn" id="rpReplay">애니메이션 다시 보기</button></div>
+  <div class="rp-hero">
+    <span class="tag" id="rpTag"></span>
+    <h1 id="rpTitle"></h1>
+    <p class="meta" id="rpMeta"></p>
+  </div>
+
+  <div class="card">
+    <h2>값이 오른 만큼, 빠져나간 돈</h2>
+    <p class="sub" id="vsSub"></p>
+    <div class="vs" id="vs"></div>
+  </div>
+
+  <div class="card">
+    <h2>단계별로 나간 돈</h2>
+    <div class="list" id="stages" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <h2>내 돈의 흐름</h2>
+    <div class="kgrid" id="kpis" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <h2>같은 돈, 다른 선택</h2>
+    <p class="sub" id="cmpSub"></p>
+    <div class="cmp" id="cmp"></div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+
+  <div class="card">
+    <h2>몇 년 차에 팔면 얼마가 남을까</h2>
+    <p class="sub">그해 말에 팔았을 때의 순이익이에요. 매도 비용, 양도세, 남은 대출까지 모두 뺐어요.</p>
+    <div class="legend" id="lineLegend"></div>
+    <div class="chart" id="lineChart"></div>
+  </div>
+
+  <div class="card">
+    <h2>해마다 빠져나간 돈</h2>
+    <p class="sub" id="barSub"></p>
+    <div class="legend" id="barLegend"></div>
+    <div class="chart" id="barChart"></div>
+  </div>
+
+  <div class="card" id="receipt"></div>
+
+  <div class="card notes">
+    <h2>이 계산이 깔고 있는 가정</h2>
+    <ul id="notes"></ul>
+  </div>
+
+  <div class="card">
+    <details class="tbl"><summary>연도별 상세 표</summary><div class="tbl-wrap"><table id="yearTable"></table></div></details>
+  </div>
+  <p class="disclaim">참고용 추정치예요. 세무 상담을 대신할 수 없어요.</p>
+</div>
+<div class="cta-bar"><button type="button" class="cta" id="againBtn">다른 조건으로 해보기</button></div>
+</section>
+<script>
+/* ===================== 계산 엔진 ===================== */
+const EOK = 1e8, MAN = 1e4;
+
+const DEFAULTS = {
+  res: { price: 9, years: 10, ltv: 40, growth: 3, rate0: 4.2, rateUp: 0.15, pubRatio: 69, depRate: 3.0,
+         repay: 'amort', term: 30, mgmt: '', repair: 50, moving: 300, jeonseRatio: 55, wolseDep: 20, conv: 5.0, cap6: true,
+         yield: 3.5, rentUp: 2, vacancy: 5, opex: 12, landShare: 75, incomeTax: 26.4 },
+  com: { price: 30, years: 10, ltv: 60, growth: 2, rate0: 4.8, rateUp: 0.15, pubRatio: 60, depRate: 3.0,
+         repay: 'bullet', term: 10, mgmt: '', repair: 50, moving: 300, jeonseRatio: 55, wolseDep: 20, conv: 5.0, cap6: true,
+         yield: 3.5, rentUp: 2, vacancy: 5, opex: 12, landShare: 75, incomeTax: 26.4 }
+};
+const PRICE_CHIPS = { res: [3, 6, 9, 12, 18, 30], com: [10, 20, 30, 50, 80, 150] };
+
+function progressive(base, brackets){ // brackets: [[upTo, rate]...]
+  let tax = 0, prev = 0;
+  for (const [up, r] of brackets){ if (base <= prev) break; tax += (Math.min(base, up) - prev) * r; prev = up; }
+  return tax;
+}
+const CGT_BR = [[14e6,.06],[50e6,.15],[88e6,.24],[150e6,.35],[300e6,.38],[500e6,.40],[1e9,.42],[Infinity,.45]];
+const JONGBU_BR = [[3e8,.005],[6e8,.007],[12e8,.01],[25e8,.013],[50e8,.015],[94e8,.02],[Infinity,.027]];
+
+// 주택 매매 중개보수 상한 (부가세 별도)
+function brokerRes(v){
+  const r = v < 5e7 ? .006 : v < 2e8 ? .005 : v < 9e8 ? .004 : v < 12e8 ? .005 : v < 15e8 ? .006 : .007;
+  let fee = v * r; if (v < 5e7) fee = Math.min(fee, 25e4); else if (v < 2e8) fee = Math.min(fee, 80e4);
+  return fee * 1.1;
+}
+const brokerCom = v => v * .009 * 1.1;
+
+// 1주택 취득세 (+지방교육세, 85㎡ 이하 가정 → 농특세 없음)
+function acqTaxRes(p){
+  let r = p <= 6e8 ? .01 : p <= 9e8 ? (p / 1e8 * 2 / 3 - 3) / 100 : .03;
+  return { acq: p * r, edu: p * r * .1, rural: 0 };
+}
+function acqTaxCom(p){ return { acq: p * .04, edu: p * .004, rural: p * .002 }; }
+
+// 주택 재산세 본세 (1주택 특례: 공시 9억 이하)
+function propTaxHouse(pub){
+  const fmv = pub <= 3e8 ? .43 : pub <= 6e8 ? .44 : .45;
+  const base = pub * fmv;
+  const special = pub <= 9e8;
+  const br = special ? [[6e7,.0005],[15e7,.001],[3e8,.002],[Infinity,.0035]] : [[6e7,.001],[15e7,.0015],[3e8,.0025],[Infinity,.004]];
+  const main = progressive(base, br);
+  return { main, total: main * 1.2 + base * .0014, base };
+}
+function jongbuHouse(pub, propMain, heldYears){
+  const base = Math.max(0, pub - 12e8) * .6;
+  if (!base) return 0;
+  let tax = progressive(base, JONGBU_BR);
+  const dupl = propMain * (Math.max(0, pub - 12e8) * .6) / pub; // 재산세 중복분 (근사)
+  tax = Math.max(0, tax - dupl);
+  const ltc = heldYears >= 15 ? .5 : heldYears >= 10 ? .4 : heldYears >= 5 ? .2 : 0; // 장기보유 세액공제
+  return tax * (1 - ltc) * 1.2; // 농특세 20%
+}
+// 상업용: 토지 별도합산 + 건물
+function propTaxCom(landPub, bldPub){
+  const lb = landPub * .7, bb = bldPub * .7;
+  const land = progressive(lb, [[2e8,.002],[10e8,.003],[Infinity,.004]]);
+  const bld = bb * .0025;
+  return { main: land + bld, land, total: (land + bld) * 1.2 + (lb + bb) * .0014, base: lb + bb };
+}
+function jongbuLand(landPub, landProp){
+  if (landPub <= 80e8) return 0;
+  const base = landPub - 80e8;
+  let tax = progressive(base, [[200e8,.005],[400e8,.006],[Infinity,.007]]);
+  tax = Math.max(0, tax - landProp * base / landPub);
+  return tax * 1.2;
+}
+
+// 건강보험 지역가입자 재산분 (월액, 재산과표 기준 근사 테이블)
+const HI_PTS = [[0,0],[0.5e8,45000],[1e8,65000],[2e8,90000],[3e8,105000],[5e8,133000],[10e8,180000],[20e8,236000],[50e8,290000],[1e11,300000]];
+function hiProperty(base){
+  const b = Math.max(0, base - 1e8);
+  for (let i = 1; i < HI_PTS.length; i++){
+    const [x1,y1] = HI_PTS[i-1], [x2,y2] = HI_PTS[i];
+    if (b <= x2) return (y1 + (y2 - y1) * (b - x1) / (x2 - x1)) * 12 * 1.1314;
+  }
+  return 300000 * 12 * 1.1314;
+}
+const HI_RATE = .0719 * 1.1314;
+
+function cgt(type, t, sale, basis){
+  const gain = sale - basis;
+  if (gain <= 0) return 0;
+  if (type === 'res'){
+    if (t < 2) return Math.max(0, gain - 250e4) * .6 * 1.1;
+    if (sale <= 12e8) return 0;
+    const tg = gain * (sale - 12e8) / sale;
+    const ltd = t >= 3 ? Math.min(.8, .08 * t) : 0;
+    return progressive(Math.max(0, tg * (1 - ltd) - 250e4), CGT_BR) * 1.1;
+  }
+  if (t < 2) return Math.max(0, gain - 250e4) * .4 * 1.1;
+  const ltd = t >= 3 ? Math.min(.3, .02 * t) : 0;
+  return progressive(Math.max(0, gain * (1 - ltd) - 250e4), CGT_BR) * 1.1;
+}
+
+function irr(flows){ // flows[i] at time i (years)
+  const npv = r => flows.reduce((s, f, i) => s + f / Math.pow(1 + r, i), 0);
+  let lo = -0.99, hi = 1.5, flo = npv(lo), fhi = npv(hi);
+  if (flo * fhi > 0) return null;
+  for (let k = 0; k < 120; k++){ const m = (lo + hi) / 2, fm = npv(m); if (flo * fm <= 0){ hi = m; fhi = fm; } else { lo = m; flo = fm; } }
+  return (lo + hi) / 2;
+}
+
+function simulate(p){
+  const type = p.type, P = p.price * EOK, N = p.years, g = p.growth / 100;
+  const pub = p.pubRatio / 100, depNet = p.depRate / 100 * (1 - .154);
+  const rateAt = t => Math.min(.12, Math.max(0, (p.rate0 + p.rateUp * (t - 1)) / 100));
+  const valueAt = t => P * Math.pow(1 + g, t);
+  const mgmtMonthly = p.mgmt === '' || p.mgmt == null ? Math.round(20 + 1.3 * p.price) * MAN : p.mgmt * MAN;
+
+  // ---- 취득
+  const tx = type === 'res' ? acqTaxRes(P) : acqTaxCom(P);
+  let loan0 = P * p.ltv / 100;
+  if (type === 'res' && p.cap6) loan0 = Math.min(loan0, 6e8);
+  const acq = {
+    acqTax: tx.acq, edu: tx.edu, rural: tx.rural,
+    broker: type === 'res' ? brokerRes(P) : brokerCom(P),
+    legal: 50 * MAN + P * .0015,
+    stamp: loan0 > 10e8 ? 35 * MAN : loan0 > 1e8 ? 15 * MAN : loan0 > 5e7 ? 7 * MAN : 0,
+    moving: type === 'res' ? p.moving * MAN : 0
+  };
+  const acqTotal = Object.values(acq).reduce((a, b) => a + b, 0);
+  const equity = P + acqTotal - loan0;
+  const basisNoSell = P + acq.acqTax + acq.edu + acq.rural + acq.broker + acq.legal;
+
+  // ---- 대안 (임차 + 예금)
+  const alts = type === 'res'
+    ? [{ key: 'jeonse', name: '전세 + 예금' }, { key: 'wolse', name: '월세 + 예금' }]
+    : [{ key: 'deposit', name: '예금만' }];
+  const altState = {};
+  for (const a of alts) altState[a.key] = { cash: equity, dep: 0, depAmt: 0, costs: 0, rentPaid: 0 };
+  const leaseAt = t => { // 해당 연도 시작 시점 계약 (2년 단위 갱신)
+    const start = t - ((t - 1) % 2) - 1; const v = valueAt(start);
+    const j = v * p.jeonseRatio / 100;
+    const wd = j * p.wolseDep / 100;
+    return { jeonse: j, wolseDep: wd, wolseMonthly: (j - wd) * p.conv / 100 / 12 };
+  };
+
+  // ---- 연도 루프
+  let bal = loan0, sOwner = 0, injected = equity;
+  const years = [];
+  const flowsOwner = [-equity];
+  const term = Math.max(1, p.term);
+  for (let t = 1; t <= N; t++){
+    const r = rateAt(t), vStart = valueAt(t - 1), vEnd = valueAt(t);
+    // 대출
+    let interest = 0, principal = 0;
+    for (let m = 0; m < 12; m++){
+      const monthsLeft = term * 12 - ((t - 1) * 12 + m);
+      const it = bal * r / 12; interest += it;
+      if (bal > 0 && p.repay === 'amort' && monthsLeft > 0){
+        const mr = r / 12; const remain = monthsLeft;
+        const pay = mr > 0 ? bal * mr / (1 - Math.pow(1 + mr, -remain)) : bal / remain;
+        const pr = Math.min(bal, pay - it); principal += pr; bal -= pr;
+      } else if (bal > 0 && p.repay === 'bullet' && monthsLeft <= 0){ /* 만기 후 연장 가정: 상환 없음 */ }
+    }
+    // 보유세
+    let prop, jong, hiBase;
+    const held = t - 1;
+    if (type === 'res'){
+      const pubV = vStart * pub; const pt = propTaxHouse(pubV);
+      prop = pt.total; jong = jongbuHouse(pubV, pt.main, held); hiBase = pt.base;
+    } else {
+      const land = vStart * p.landShare / 100 * pub, bld = vStart * (1 - p.landShare / 100) * pub;
+      const pt = propTaxCom(land, bld);
+      prop = pt.total; jong = jongbuLand(land, pt.land); hiBase = pt.base;
+    }
+    // 관리·임대
+    let mgmt = 0, repair = 0, rentIncome = 0, opex = 0, incomeTax = 0, netRent = 0;
+    if (type === 'res'){
+      mgmt = mgmtMonthly * 12 * Math.pow(1.03, t - 1);
+      repair = p.repair * MAN * Math.pow(1.02, t - 1);
+    } else {
+      const gross = P * p.yield / 100 * Math.pow(1 + p.rentUp / 100, t - 1);
+      rentIncome = gross * (1 - p.vacancy / 100);
+      opex = rentIncome * p.opex / 100;
+      netRent = rentIncome - opex - interest - prop - jong;
+      incomeTax = Math.max(0, netRent) * p.incomeTax / 100;
+    }
+    // 건강보험 (보유로 늘어나는 몫)
+    let hi = 0;
+    if (p.hi === 'local') hi += hiProperty(hiBase);
+    if (type === 'com'){
+      const inc = Math.max(0, netRent);
+      hi += p.hi === 'local' ? inc * HI_RATE : Math.max(0, inc - 2000 * MAN) * HI_RATE;
+    }
+    const costs = interest + prop + jong + mgmt + repair + opex + incomeTax + hi;
+    const outflow = costs + principal - rentIncome;
+    const inject = Math.max(0, outflow);
+    sOwner = sOwner * (1 + depNet) + Math.max(0, -outflow) ;
+    injected += inject;
+    flowsOwner.push(-inject);
+
+    // 대안 진행 (연초에 같은 돈 투입 → 비용 지출 → 1년 이자)
+    const lease = leaseAt(t);
+    for (const a of alts){
+      const s = altState[a.key];
+      s.cash += inject;
+      let c = 0;
+      if (a.key === 'jeonse' || a.key === 'wolse'){
+        const need = a.key === 'jeonse' ? lease.jeonse : lease.wolseDep;
+        s.cash -= (need - s.depAmt); s.depAmt = need;
+        const rent = a.key === 'wolse' ? lease.wolseMonthly * 12 : 0;
+        const moveYear = (t - 1) % 4 === 0;
+        const leaseFee = moveYear ? (a.key === 'jeonse' ? lease.jeonse : lease.wolseDep + lease.wolseMonthly * 100) * .004 * 1.1 : 0;
+        const moving = moveYear ? p.moving * MAN : 0;
+        const hiR = p.hi === 'local' ? hiProperty(need * .3) : 0;
+        c = rent + mgmt + leaseFee + moving + hiR;
+        s.rentPaid += rent;
+        s.lastCosts = { rent, mgmt, leaseFee, moving, hi: hiR };
+      }
+      s.cash -= c; s.costs += c;
+      s.cash *= 1 + (s.cash >= 0 ? depNet : r);
+      s.wealthAt = s.cash + s.depAmt;
+    }
+
+    // 이 해 말에 판다면
+    const sellBroker = type === 'res' ? brokerRes(vEnd) : brokerCom(vEnd);
+    const prepay = bal * (type === 'res' ? .006 : .012) * Math.max(0, (3 - t) / 3);
+    const tax = cgt(type, t, vEnd, basisNoSell + sellBroker);
+    const proceeds = vEnd - sellBroker - prepay - tax - bal;
+    const ownerWealth = proceeds + sOwner;
+    const row = { t, rate: r, value: vEnd, interest, principal, prop, jong, mgmt, repair, opex, incomeTax, hi, rentIncome,
+      costs, inject, balance: bal, sellBroker, prepay, cgt: tax, proceeds, ownerWealth, injected,
+      ownerProfit: ownerWealth - injected, alt: {} };
+    for (const a of alts){ row.alt[a.key] = altState[a.key].wealthAt - injected; }
+    years.push(row);
+  }
+  const last = years[N - 1];
+  const alt = alts.map(a => {
+    const s = altState[a.key];
+    const fl = flowsOwner.slice(); fl[N] = (fl[N] || 0) + s.wealthAt;
+    return { ...a, wealth: s.wealthAt, profit: s.wealthAt - injected, irr: irr(fl), costs: s.costs, rentPaid: s.rentPaid, deposit: s.depAmt };
+  });
+  const fo = flowsOwner.slice(); fo[N] += last.ownerWealth;
+  const sum = k => years.reduce((s, y) => s + y[k], 0);
+  const hold = { interest: sum('interest'), prop: sum('prop'), jong: sum('jong'), mgmt: sum('mgmt'), repair: sum('repair'),
+    opex: sum('opex'), incomeTax: sum('incomeTax'), hi: sum('hi') };
+  const holdTotal = Object.values(hold).reduce((a, b) => a + b, 0);
+  const sale = { broker: last.sellBroker, prepay: last.prepay, cgt: last.cgt };
+  const saleTotal = sale.broker + sale.prepay + sale.cgt;
+  return { p, P, N, loan0, equity, acq, acqTotal, hold, holdTotal, sale, saleTotal, years, last,
+    principalPaid: sum('principal'), rentIncome: sum('rentIncome'), extraInjected: injected - equity, injected,
+    ownerWealth: last.ownerWealth, ownerProfit: last.ownerProfit, ownerIrr: irr(fo), ownerSavings: sOwner,
+    priceGain: last.value - P, mgmtMonthly, alts: alt };
+}
+
+
+/* ===================== 공통 ===================== */
+const $ = id => document.getElementById(id);
+function won(x){
+  const s = x < 0 ? '−' : ''; let m = Math.round(Math.abs(x) / MAN);
+  const e = Math.floor(m / 1e4); m = m % 1e4;
+  if (e > 0) return s + e.toLocaleString() + '억' + (m ? ' ' + m.toLocaleString() + '만' : '') + '원';
+  if (m > 0) return s + m.toLocaleString() + '만원';
+  return Math.abs(x) < 1 ? '0원' : s + Math.round(Math.abs(x)).toLocaleString() + '원';
+}
+const swon = x => (x > 0 ? '+' : '') + won(x);
+function short(x){
+  const a = Math.abs(x), s = x < 0 ? '−' : '';
+  if (a >= EOK) return s + (+(a / EOK).toFixed(a >= 10 * EOK ? 1 : 2)).toLocaleString() + '억';
+  if (a >= MAN) return s + Math.round(a / MAN).toLocaleString() + '만';
+  return a < 1 ? '0' : s + Math.round(a).toLocaleString();
+}
+const pct = (x, d = 1) => x == null || !isFinite(x) ? '계산 불가' : (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toFixed(d) + '%';
+const cls = x => x > 0 ? 'up' : x < 0 ? 'down' : '';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const reduceMotion = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+
+/* ===================== 1. 조건 ===================== */
+let state = { type: 'res', hi: 'local', ...DEFAULTS.res };
+const NUM_IDS = ['price','years','ltv','growth','rate0','rateUp','pubRatio','depRate','term','repair','moving','jeonseRatio','wolseDep','conv','yield','rentUp','vacancy','opex','landShare','incomeTax'];
+
+function syncInputs(){
+  for (const id of NUM_IDS) $(id).value = state[id];
+  $('mgmt').value = state.mgmt; $('repay').value = state.repay; $('cap6').checked = state.cap6;
+  document.querySelectorAll('#typeSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === state.type));
+  document.querySelectorAll('#hiSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.hi === state.hi));
+  document.querySelectorAll('.res-only').forEach(el => el.hidden = state.type !== 'res');
+  document.querySelectorAll('.com-only').forEach(el => el.hidden = state.type !== 'com');
+  $('priceChips').innerHTML = PRICE_CHIPS[state.type].map(v => `<button type="button" data-v="${v}" aria-pressed="false">${v}억</button>`).join('');
+  refreshSetup();
+}
+function refreshSetup(){
+  const res = state.type === 'res';
+  document.querySelectorAll('#priceChips button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === +state.price));
+  const P = state.price * EOK;
+  let loan = P * state.ltv / 100; const capped = res && state.cap6 && loan > 6e8; if (capped) loan = 6e8;
+  $('priceBig').textContent = state.price > 0 ? won(P) : '–';
+  $('yearsBig').innerHTML = `${state.years}년<small>${2026 + +state.years}년에 팔아요</small>`;
+  $('ltvBig').innerHTML = `${state.ltv}%<small>${loan > 0 ? won(loan) + (capped ? ' (6억 한도)' : '') : '내 돈으로만'}</small>`;
+  $('growthBig').innerHTML = `${state.growth > 0 ? '+' : ''}${state.growth}%<small>${state.years}년 뒤 ${short(P * Math.pow(1 + state.growth / 100, state.years))}</small>`;
+  $('typeHint').textContent = res ? '직접 들어가 사는 1주택자 기준이에요. 전용 85㎡ 이하로 계산해요.' : '상가·사무실로 임대를 놓는 건물이에요. 월세 수입과 공실까지 계산해요.';
+  $('startSub').textContent = `${res ? '아파트' : '꼬마빌딩'} ${won(P)} · ${state.years}년 보유`;
+}
+function bindSetup(){
+  for (const id of NUM_IDS) $(id).addEventListener('input', e => { const v = parseFloat(e.target.value); if (isFinite(v)) { state[id] = v; refreshSetup(); } });
+  $('mgmt').addEventListener('input', e => { state.mgmt = e.target.value === '' ? '' : parseFloat(e.target.value); });
+  $('repay').addEventListener('change', e => { state.repay = e.target.value; });
+  $('cap6').addEventListener('change', e => { state.cap6 = e.target.checked; refreshSetup(); });
+  $('priceChips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.price = +b.dataset.v; $('price').value = state.price; refreshSetup(); });
+  $('typeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.dataset.type === state.type) return;
+    state = { type: b.dataset.type, hi: state.hi, ...DEFAULTS[b.dataset.type], years: state.years }; syncInputs(); });
+  $('hiSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.hi = b.dataset.hi; syncInputs(); });
+  $('resetBtn').addEventListener('click', () => { state = { type: state.type, hi: state.hi, ...DEFAULTS[state.type], price: state.price, years: state.years }; syncInputs(); });
+  $('startBtn').addEventListener('click', startSim);
+  $('backSetup').addEventListener('click', () => { stopSim(); show('sSetup'); });
+  $('rpEdit').addEventListener('click', () => show('sSetup'));
+  $('againBtn').addEventListener('click', () => show('sSetup'));
+  $('rpReplay').addEventListener('click', startSim);
+  $('skipBtn').addEventListener('click', () => { stopSim(); showReport(); });
+  $('playBtn').addEventListener('click', () => { if (sim.done) return startSim(); sim.paused = !sim.paused; $('playBtn').textContent = sim.paused ? '계속 보기' : '일시정지'; if (!sim.paused) { sim.last = performance.now(); loop(); } });
+  $('speedSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; sim.speed = +b.dataset.s;
+    document.querySelectorAll('#speedSeg button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (!$('sReport').hidden && result) drawCharts(result); if (!$('sSim').hidden) drawSpark(true); }, 120); });
+}
+function show(id){
+  for (const s of ['sSetup', 'sSim', 'sReport']) $(s).hidden = s !== id;
+  window.scrollTo(0, 0);
+}
+
+/* ===================== 2. 애니메이션 ===================== */
+let result = null;
+const sim = { raf: 0, tau: -6, paused: false, speed: 1, done: true };
+
+function sceneSVG(type){
+  const res = type === 'res';
+  let b = `<rect width="360" height="230" fill="var(--sky)"/>
+    <g fill="var(--sky-2)"><ellipse cx="70" cy="44" rx="26" ry="9"/><ellipse cx="88" cy="38" rx="16" ry="9"/><ellipse cx="300" cy="28" rx="22" ry="7"/></g>
+    <circle id="sun" cx="40" cy="60" r="13" fill="var(--sun)"/>
+    <rect y="182" width="360" height="48" fill="var(--ground)"/><rect y="200" width="360" height="9" fill="var(--road)"/>`;
+  if (res){
+    b += `<g id="bld"><rect x="200" y="40" width="92" height="142" rx="5" fill="var(--bld)" stroke="var(--bld-edge)" stroke-width="2"/>
+      <rect x="196" y="36" width="100" height="8" rx="3" fill="var(--bld-edge)"/>`;
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 4; c++) b += `<rect class="win" x="${210 + c * 19}" y="${52 + r * 15.5}" width="12" height="9" rx="1.5" fill="var(--win)"/>`;
+    b += `<rect x="236" y="160" width="20" height="22" rx="2" fill="var(--blue)"/></g>`;
+  } else {
+    b += `<g id="bld"><rect x="180" y="74" width="132" height="108" rx="4" fill="var(--bld)" stroke="var(--bld-edge)" stroke-width="2"/>
+      <rect x="176" y="70" width="140" height="8" rx="3" fill="var(--bld-edge)"/>`;
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) b += `<rect class="win" x="${190 + c * 24}" y="${84 + r * 20}" width="16" height="11" rx="1.5" fill="var(--win)"/>`;
+    b += `<path d="M180 146h132l-6 10H186z" fill="var(--awning)"/>`;
+    for (let i = 0; i < 6; i++) b += `<path d="M${190 + i * 21} 146h10l-1 10h-10z" fill="var(--bld)" opacity=".55"/>`;
+    b += `<rect x="190" y="160" width="74" height="22" rx="2" fill="var(--win)"/><rect x="272" y="160" width="28" height="22" rx="2" fill="var(--blue)"/>
+      <g id="vacant" visibility="hidden"><rect x="200" y="164" width="54" height="15" rx="3" fill="var(--card)" stroke="var(--up)" stroke-width="1.5"/><text x="227" y="175" text-anchor="middle" font-size="9" font-weight="700" fill="var(--up)">임대 문의</text></g></g>`;
+  }
+  const bx = res ? 246 : 246, by = res ? 12 : 44;
+  b += `<g id="tag"><rect x="${bx - 52}" y="${by}" width="104" height="22" rx="11" fill="var(--card)"/>
+      <text id="tagTxt" x="${bx}" y="${by + 15}" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--ink)"></text></g>
+    <g id="sold" visibility="hidden" transform="rotate(-10 ${bx} 120)"><rect x="${bx - 48}" y="104" width="96" height="30" rx="6" fill="var(--card)" stroke="var(--up)" stroke-width="3"/>
+      <text x="${bx}" y="125" text-anchor="middle" font-size="15" font-weight="800" fill="var(--up)">매도 완료</text></g>
+    <g id="char" transform="translate(54 120)">
+      <ellipse cx="34" cy="64" rx="9" ry="4" fill="var(--char-ink)" opacity=".15" transform="translate(0 0)"/>
+      <ellipse cx="22" cy="60" rx="7" ry="4" fill="var(--char)"/><ellipse cx="46" cy="60" rx="7" ry="4" fill="var(--char)"/>
+      <ellipse cx="34" cy="34" rx="30" ry="27" fill="var(--char)"/>
+      <path d="M12 18 q22 -26 44 0 z" fill="var(--blue)"/><rect x="8" y="16" width="52" height="5" rx="2.5" fill="var(--blue)"/>
+      <circle class="eye" cx="25" cy="32" r="3" fill="var(--char-ink)"/><circle class="eye" cx="43" cy="32" r="3" fill="var(--char-ink)"/>
+      <ellipse cx="18" cy="41" rx="4.5" ry="2.5" fill="var(--blush)"/><ellipse cx="50" cy="41" rx="4.5" ry="2.5" fill="var(--blush)"/>
+      <path id="mouth" d="M27 41 q7 7 14 0" fill="none" stroke="var(--char-ink)" stroke-width="2.4" stroke-linecap="round"/>
+      <path id="sweat" d="M60 20 q5 8 0 11 q-5 -3 0 -11z" fill="var(--sky-2)" stroke="var(--blue)" stroke-width="1.2" visibility="hidden"/>
+      <g transform="translate(52 40)"><rect width="20" height="14" rx="3" fill="var(--up)"/><rect x="12" y="4" width="8" height="6" rx="2" fill="var(--card)"/></g>
+    </g>`;
+  return b;
+}
+const MOUTH = { happy: 'M27 41 q7 7 14 0', flat: 'M27 43 h14', sad: 'M27 45 q7 -6 14 0' };
+function mood(m, sweat){
+  $('mouth').setAttribute('d', MOUTH[m] || MOUTH.flat);
+  $('sweat').setAttribute('visibility', sweat ? 'visible' : 'hidden');
+}
+
+function buildTimeline(r){
+  const res = r.p.type === 'res', N = r.N, ev = [];
+  const add = (t, o) => ev.push({ t, ...o });
+  add(-5.6, { kind: 'info', ic: '계약', title: `${won(r.P)} ${res ? '아파트' : '꼬마빌딩'} 계약`, sub: r.loan0 > 0 ? `대출 ${won(r.loan0)}을 받았어요` : '대출 없이 샀어요', bubble: '드디어 건물주가 됐다!', mood: 'happy', jump: true, inject: r.equity - r.acqTotal });
+  add(-4.4, { kind: 'out', ic: '세금', title: '취득세 납부', sub: '취득세·지방교육세' + (res ? '' : '·농특세'), amt: r.acq.acqTax + r.acq.edu + r.acq.rural, bubble: '사자마자 세금부터…', mood: 'flat', sweat: true });
+  add(-3.2, { kind: 'out', ic: '중개', title: '부동산 중개보수', sub: '부가세 포함', amt: r.acq.broker, bubble: '중개보수도 내야지', mood: 'flat' });
+  add(-2.0, { kind: 'out', ic: '등기', title: '법무사·등기·채권', sub: '대출 인지세 포함', amt: r.acq.legal + r.acq.stamp });
+  if (res && r.acq.moving > 0) add(-0.9, { kind: 'out', ic: '이사', title: '이사·입주 청소', amt: r.acq.moving, bubble: '새 집이다!', mood: 'happy' });
+  let prevRate = null;
+  r.years.forEach((y, i) => {
+    const t = i + 1, base = i * 12;
+    if (t === 1 && y.interest > 0) add(base + .4, { kind: 'out', ic: '이자', title: '대출이자가 매달 빠져나가요', sub: `금리 ${(y.rate * 100).toFixed(2)}% · 월 ${won(y.interest / 12)}`, cont: true });
+    else if (prevRate != null && y.rate > prevRate + 1e-6 && y.interest > 0) add(base + .4, { kind: 'info', ic: '금리', title: `금리 ${(prevRate * 100).toFixed(2)}% → ${(y.rate * 100).toFixed(2)}%`, sub: `올해 이자 ${won(y.interest)}`, bubble: '금리가 또 올랐어…', mood: 'sad' });
+    prevRate = y.rate;
+    if (t === 1 && res) add(base + 1.2, { kind: 'out', ic: '관리', title: '관리비가 매달 나가요', sub: `월 ${won(y.mgmt / 12)}`, cont: true });
+    if (t === 1 && !res) add(base + 1.2, { kind: 'in', ic: '월세', title: '임대료가 들어와요', sub: `공실 반영 월 ${won(y.rentIncome / 12)}`, bubble: '월세 들어왔다!', mood: 'happy', jump: true });
+    if (!res && r.p.vacancy > 0 && t % 3 === 2) add(base + 3, { kind: 'info', ic: '공실', title: '한 층이 비었어요', sub: `공실률 ${r.p.vacancy}%만큼 임대료가 줄어요`, bubble: '세입자가 나갔다…', mood: 'sad', vacant: true });
+    add(base + 6.5, { kind: 'out', ic: '재산', title: '재산세 고지서', sub: '7월·9월에 나눠 내요', amt: y.prop, bubble: t === 1 ? '재산세 고지서가 왔네' : null, mood: 'flat', sweat: t === 1 });
+    if (t === 1 && y.hi > 0) add(base + 10.2, { kind: 'out', ic: '건보', title: '건강보험료가 올랐어요', sub: `월 ${won(y.hi / 12)} 더 내요`, bubble: '건보료까지 올라?!', mood: 'sad', sweat: true, cont: true });
+    if (y.jong > 0) add(base + 11.2, { kind: 'out', ic: '종부', title: '종합부동산세 고지서', sub: '농어촌특별세 포함', amt: y.jong, bubble: '종부세까지…', mood: 'sad', sweat: true });
+    if (y.incomeTax > 0) add(base + 11.4, { kind: 'out', ic: '소득', title: '임대소득 종합소득세', sub: '지방소득세 포함', amt: y.incomeTax });
+    add(base + 11.85, { kind: 'info', ic: `${t}년`, title: `${t}년 차 끝 · 시세 ${short(y.value)}`, sub: `지금 팔면 ${swon(y.ownerProfit)}`, yearEnd: t, mood: y.ownerProfit > 0 ? 'happy' : 'sad' });
+  });
+  const S = N * 12, L = r.last;
+  add(S + .4, { kind: 'info', ic: '매도', title: `${won(L.value)}에 팔았어요`, sub: `${N}년 동안 ${pct(L.value / r.P - 1)}`, bubble: '드디어 팔았다!', mood: 'happy', jump: true, sold: true });
+  add(S + 1.2, { kind: 'out', ic: '중개', title: '매도 중개보수', sub: '부가세 포함', amt: r.sale.broker });
+  if (r.sale.prepay > 0) add(S + 1.8, { kind: 'out', ic: '수수료', title: '중도상환수수료', sub: '3년 안에 대출을 갚았어요', amt: r.sale.prepay });
+  if (r.sale.cgt > 0) add(S + 2.4, { kind: 'out', ic: '양도', title: '양도소득세', sub: '지방소득세 포함', amt: r.sale.cgt, bubble: '양도세가 이만큼이나…', mood: 'sad', sweat: true });
+  else add(S + 2.4, { kind: 'info', ic: '양도', title: '양도세 0원', sub: res && N >= 2 ? '1주택 비과세 덕분이에요' : '남은 차익이 없어요', bubble: res && N >= 2 ? '1주택 비과세 덕분이다!' : null, mood: 'happy' });
+  if (L.balance > 1) add(S + 3.0, { kind: 'info', ic: '대출', title: '남은 대출 갚기', sub: '은행으로 보냈어요', amt: L.balance });
+  add(S + 3.6, { kind: r.ownerWealth >= 0 ? 'in' : 'out', ic: '정산', title: '최종으로 손에 쥔 돈', sub: r.p.type === 'com' && r.ownerSavings > 0 ? `모아둔 임대수입 ${won(r.ownerSavings)} 포함` : '매각대금에서 모두 빼고 남은 돈', amt: r.ownerWealth, final: true, mood: r.ownerProfit > 0 ? 'happy' : 'sad', jump: r.ownerProfit > 0 });
+  ev.sort((a, b) => a.t - b.t);
+
+  // 매달 쌓이는 비용·투입금 (누적)
+  const M = S, cumCost = new Float64Array(M + 1), cumInj = new Float64Array(M + 1), lumpCost = new Float64Array(M + 1);
+  let lumpAt = [];
+  r.years.forEach((y, i) => { lumpAt.push([i * 12 + 6.5, y.prop]); if (y.jong) lumpAt.push([i * 12 + 11.2, y.jong]); if (y.incomeTax) lumpAt.push([i * 12 + 11.4, y.incomeTax]); });
+  for (let m = 0; m < M; m++){
+    const y = r.years[Math.floor(m / 12)];
+    cumCost[m + 1] = cumCost[m] + (y.interest + y.mgmt + y.repair + y.opex + y.hi) / 12;
+    cumInj[m + 1] = cumInj[m] + y.inject / 12;
+  }
+  return { ev, S, End: S + 4.6, cumCost, cumInj, lumpAt };
+}
+
+let TL = null;
+function startSim(){
+  stopSim();
+  result = simulate({ ...state, years: Math.round(state.years) });
+  TL = buildTimeline(result);
+  const r = result, res = r.p.type === 'res';
+  $('scene').innerHTML = sceneSVG(r.p.type);
+  $('feed').innerHTML = ''; $('fx').innerHTML = '';
+  $('progMid').textContent = `갖고 있는 ${r.N}년`;
+  $('bubble').className = 'bubble hide';
+  $('playBtn').textContent = '일시정지'; $('skipBtn').textContent = '결과 바로 보기';
+  const old = $('stage').querySelector('.done-card'); if (old) old.remove();
+  Object.assign(sim, { tau: -6.2, paused: false, done: false, fired: 0, lastMonth: -1, acqCost: 0, lumpCost: 0, saleCost: 0, injLump: 0, sparkPts: null, last: performance.now(), mood: 'happy', nowTxt: '–' });
+  $('cNow').textContent = '–'; $('cNow').className = 'v tnum';
+  mood('happy', false);
+  drawSpark(true);
+  show('sSim');
+  loop();
+}
+function stopSim(){ cancelAnimationFrame(sim.raf); sim.done = true; }
+
+function msPerUnit(t){
+  if (t < 0 || t >= TL.S) return 1700;
+  return Math.min(2000, Math.max(330, 120000 / (TL.S + 10)));
+}
+function loop(){
+  if (sim.done || sim.paused) return;
+  const now = performance.now(); const dt = Math.min(100, now - sim.last); sim.last = now;
+  sim.tau += dt * sim.speed / msPerUnit(sim.tau);
+  if (sim.tau >= TL.End){ sim.tau = TL.End; frame(); finishSim(); return; }
+  frame();
+  sim.raf = requestAnimationFrame(loop);
+}
+
+let bubbleTimer = 0;
+function say(text){
+  const b = $('bubble'); b.textContent = text; b.className = 'bubble';
+  clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => b.className = 'bubble hide', 1700 / Math.sqrt(sim.speed));
+}
+function coin(dir, label){
+  if (reduceMotion) return;
+  const fx = $('fx'); if (!label && fx.childElementCount > 5) return; if (fx.childElementCount > 12) fx.firstElementChild.remove();
+  const el = document.createElement('div'); el.className = 'coin ' + dir + (label ? '' : ' small');
+  el.innerHTML = `<i>₩</i>` + (label ? `<span class="${dir === 'out' ? 'up' : 'down'}">${label}</span>` : '');
+  const charX = 24.5, charY = 66, bx = 68, by = 55;
+  if (dir === 'out'){ el.style.left = (charX + (Math.random() * 8 - 4)) + '%'; el.style.top = charY + '%'; }
+  else { el.style.setProperty('--fx0', bx + '%'); el.style.setProperty('--fy0', by + '%'); el.style.setProperty('--fx1', charX + '%'); el.style.setProperty('--fy1', charY + '%'); el.style.left = charX + '%'; el.style.top = charY + '%'; }
+  el.addEventListener('animationend', () => el.remove());
+  fx.appendChild(el);
+}
+function jump(){ const c = $('char'); c.classList.remove('jump'); void c.getBBox(); c.classList.add('jump'); }
+function feed(e){
+  const f = $('feed');
+  const amt = e.amt != null ? `<div class="am ${e.kind === 'out' ? '' : e.kind === 'in' ? 'down' : ''}">${e.kind === 'out' ? '−' : e.final ? '' : ''}${won(Math.abs(e.amt))}</div>` : '<div></div>';
+  const row = document.createElement('div'); row.className = 'ev new';
+  row.innerHTML = `<div class="ic ${e.kind}">${esc(e.ic)}</div><div class="tx"><b>${esc(e.title)}</b><span>${esc(e.sub || '')}</span></div>${amt}`;
+  f.prepend(row);
+  while (f.childElementCount > 6) f.lastElementChild.remove();
+}
+
+function fire(e){
+  feed(e);
+  if (e.kind === 'out' && e.amt != null){
+    if (e.t < 0) sim.acqCost += e.amt;
+    else if (e.t < TL.S) sim.lumpCost += e.amt;
+    else if (!e.final && e.ic !== '대출') sim.saleCost += e.amt;
+    if (!e.final && e.ic !== '대출') coin('out', '−' + short(e.amt));
+  }
+  if (e.inject) sim.injLump += e.inject;
+  if (e.t < 0 && e.kind === 'out' && e.amt) sim.injLump += e.amt;
+  if (e.kind === 'in' && !e.final) coin('in', '+' + short(result.years[0].rentIncome / 12));
+  if (e.bubble) say(e.bubble);
+  if (e.mood){ sim.mood = e.mood; mood(e.mood, !!e.sweat); if (e.sweat) setTimeout(() => !sim.done && mood(sim.mood, false), 1400); }
+  if (e.jump) jump();
+  if (e.vacant){ const v = $('vacant'); if (v){ v.setAttribute('visibility', 'visible'); setTimeout(() => v.setAttribute('visibility', 'hidden'), 4 * msPerUnit(5) / sim.speed); } }
+  if (e.yearEnd){ const y = result.years[e.yearEnd - 1]; $('cNow').textContent = swon(y.ownerProfit); $('cNow').className = 'v tnum ' + cls(y.ownerProfit); }
+  if (e.sold) $('sold').setAttribute('visibility', 'visible');
+  if (e.final){ $('cNow').textContent = swon(result.ownerProfit); $('cNow').className = 'v tnum ' + cls(result.ownerProfit); }
+}
+
+function frame(){
+  const r = result, t = sim.tau, S = TL.S;
+  while (sim.fired < TL.ev.length && TL.ev[sim.fired].t <= t) fire(TL.ev[sim.fired++]);
+  const m = Math.max(0, Math.min(S, t));
+  const mi = Math.floor(m), fr = m - mi;
+  const cont = mi >= S ? TL.cumCost[S] : TL.cumCost[mi] + (TL.cumCost[mi + 1] - TL.cumCost[mi]) * fr;
+  const inj = mi >= S ? TL.cumInj[S] : TL.cumInj[mi] + (TL.cumInj[mi + 1] - TL.cumInj[mi]) * fr;
+  $('cCost').textContent = won(sim.acqCost + cont + sim.lumpCost + sim.saleCost);
+  $('cIn').textContent = won(sim.injLump + inj);
+  // 시간 표시
+  let when, sub;
+  if (t < 0){ when = '사는 날'; sub = '계약과 잔금'; }
+  else if (t < S){ const yr = Math.floor(t / 12) + 1, mo = Math.floor(t % 12) + 1; when = `${yr}년 차`; sub = `${2026 + yr}년 ${mo}월 · 금리 ${(r.years[yr - 1].rate * 100).toFixed(2)}%`; }
+  else { when = '파는 날'; sub = `${2026 + r.N}년 · ${r.N}년 만에 매도`; }
+  $('simWhen').textContent = when; $('simSub').textContent = sub;
+  $('progBar').style.width = (Math.max(0, (t + 6.2) / (TL.End + 6.2)) * 100) + '%';
+  // 시세 꼬리표, 해, 창문
+  const v = r.P * Math.pow(1 + r.p.growth / 100, m / 12);
+  const d = v / r.P - 1;
+  $('tagTxt').innerHTML = `시세 ${short(v)} <tspan fill="${d > 0 ? 'var(--up)' : d < 0 ? 'var(--down)' : 'var(--muted)'}">${d >= 0 ? '▲' : '▼'}${Math.abs(d * 100).toFixed(1)}%</tspan>`;
+  const yf = t < 0 ? (t + 6.2) / 6.2 : t >= S ? Math.min(1, (t - S) / 4.6) : (t % 12) / 12;
+  $('sun').setAttribute('cx', (30 + 300 * yf).toFixed(1)); $('sun').setAttribute('cy', (70 - 46 * Math.sin(Math.PI * yf)).toFixed(1));
+  const mon = Math.floor(t);
+  if (mon !== sim.lastMonth){
+    sim.lastMonth = mon;
+    const wins = document.querySelectorAll('#scene .win');
+    wins.forEach(w => { if (Math.random() < .25) w.setAttribute('fill', Math.random() < .45 ? 'var(--win-on)' : 'var(--win)'); });
+    if (t >= 0 && t < S){
+      const y = r.years[Math.floor(t / 12)];
+      if (sim.speed < 4 || mon % 2 === 0){
+        const monthly = (y.interest + y.mgmt + y.repair + y.opex + y.hi) / 12;
+        if (monthly > 0 && mon % (sim.speed > 1 || S > 120 ? 3 : 2) === 0) coin('out', null);
+        if (y.rentIncome > 0 && mon % 2 === 1) coin('in', null);
+      }
+    }
+    $('char').classList.toggle('walk', !reduceMotion && t >= 0 && t < S);
+    drawSpark(false);
+  }
+}
+
+function sparkSeries(){
+  const r = result, S = TL.S, pts = [];
+  let lumpIdx = 0; const lumps = TL.lumpAt;
+  for (let m = 0; m <= S; m++){
+    let lump = 0; for (const [lt, a] of lumps) if (lt <= m) lump += a;
+    pts.push({ x: m, gain: r.P * (Math.pow(1 + r.p.growth / 100, m / 12) - 1), cost: r.acqTotal + TL.cumCost[m] + lump });
+  }
+  pts.push({ x: S + 3, gain: pts[S].gain, cost: pts[S].cost + r.saleTotal });
+  return pts;
+}
+function drawSpark(full){
+  const svg = $('spark'); if (!result || !TL) return;
+  if (!sim.sparkPts) sim.sparkPts = sparkSeries();
+  const pts = sim.sparkPts, S = TL.S, W = 320, H = 120, pad = 6;
+  const all = pts.flatMap(p => [p.gain, p.cost]);
+  const lo = Math.min(0, ...all), hi = Math.max(...all, 1);
+  const xs = x => pad + x / (S + 3) * (W - pad * 2), ys = v => H - 14 - (v - lo) / (hi - lo) * (H - 28);
+  const upto = Math.max(0, sim.tau);
+  const vis = pts.filter(p => p.x <= upto);
+  const path = k => vis.map((p, i) => (i ? 'L' : 'M') + xs(p.x).toFixed(1) + ' ' + ys(p[k]).toFixed(1)).join(' ');
+  const ghost = k => pts.map((p, i) => (i ? 'L' : 'M') + xs(p.x).toFixed(1) + ' ' + ys(p[k]).toFixed(1)).join(' ');
+  let s = `<line x1="${pad}" x2="${W - pad}" y1="${ys(0)}" y2="${ys(0)}" stroke="var(--line)" stroke-width="1"/>`;
+  s += `<line x1="${xs(S)}" x2="${xs(S)}" y1="4" y2="${H - 14}" stroke="var(--line)" stroke-dasharray="3 3"/><text x="${xs(S) - 3}" y="${H - 2}" text-anchor="end">${result.N}년</text><text x="${pad}" y="${H - 2}">0년</text>`;
+  if (vis.length > 1){
+    s += `<path d="${path('gain')}" fill="none" stroke="var(--up)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+    s += `<path d="${path('cost')}" fill="none" stroke="var(--ink-2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+  }
+  svg.innerHTML = s;
+}
+
+function finishSim(){
+  sim.done = true; $('char').classList.remove('walk');
+  $('playBtn').textContent = '처음부터 다시'; $('skipBtn').textContent = '결과 보고서 보기';
+  const r = result;
+  const card = document.createElement('div'); card.className = 'done-card';
+  card.innerHTML = `<b>${r.N}년 건물주 생활 끝</b><strong class="${cls(r.ownerProfit)}">${swon(r.ownerProfit)}</strong><button type="button" class="cta" style="padding:12px;font-size:15px">결과 보고서 보기</button>`;
+  card.querySelector('button').addEventListener('click', showReport);
+  $('stage').appendChild(card);
+}
+
+/* ===================== 3. 보고서 ===================== */
+function showReport(){
+  if (!result) result = simulate({ ...state, years: Math.round(state.years) });
+  show('sReport'); renderReport(result);
+}
+
+const SERIES = [
+  { key: 'deal', name: '거래비용', c: 'var(--s1)' },
+  { key: 'tax', name: '세금', c: 'var(--s2)' },
+  { key: 'int', name: '대출이자', c: 'var(--s3)' },
+  { key: 'mgmt', name: '관리·유지', c: 'var(--s4)' },
+  { key: 'hi', name: '건강보험 증가분', c: 'var(--s5)' }
+];
+const LINE_COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)'];
+
+function renderReport(r){
+  const p = r.p, res = p.type === 'res';
+  const hidden = r.acqTotal + r.holdTotal + r.saleTotal;
+  $('rpTag').textContent = `${res ? '아파트' : '꼬마빌딩'} ${won(r.P)} · ${r.N}년 보유 · 시세 연 ${p.growth}%`;
+  $('rpTitle').innerHTML = `${r.N}년 건물주 생활,<br>손에 남은 건 <span class="${cls(r.ownerProfit)}">${swon(r.ownerProfit)}</span>`;
+  $('rpMeta').innerHTML = `넣은 돈 ${won(r.injected)} 대비 <b class="${cls(r.ownerProfit)}">${pct(r.ownerProfit / r.injected)}</b> · 연 ${pct(r.ownerIrr, 2)}`;
+
+  // 차익 vs 비용
+  const bars = [['시세 차익', r.priceGain, 'var(--up)']];
+  const extra = r.ownerProfit - (r.priceGain - hidden);
+  if (!res) bars.push(['임대수입 (예금이자 포함)', r.rentIncome + Math.max(0, extra - r.rentIncome), 'var(--blue)']);
+  bars.push(['숨은 비용', hidden, 'var(--ink-2)']);
+  const mx = Math.max(...bars.map(b => Math.abs(b[1])), 1);
+  $('vsSub').textContent = res ? '집값이 오른 만큼에서 사고, 갖고, 파는 데 든 돈을 빼면 이만큼 남아요.' : '집값 차익과 임대수입에서 사고, 갖고, 파는 데 든 돈을 빼면 이만큼 남아요.';
+  $('vs').innerHTML = bars.map(([n, v, c]) => `<div class="vs-row"><div class="lb"><span>${n}</span><b class="tnum">${n === '숨은 비용' ? '−' + won(v) : swon(v)}</b></div><div class="vs-bar"><i style="width:${Math.abs(v) / mx * 100}%;background:${c}"></i></div></div>`).join('') +
+    `<div class="vs-res"><span>남은 돈</span><span class="tnum ${cls(r.ownerProfit)}">${swon(r.ownerProfit)}</span></div>`;
+
+  // 단계별
+  const st = [
+    ['살 때', '산', r.acqTotal, `취득세 ${short(r.acq.acqTax + r.acq.edu + r.acq.rural)} · 중개보수 ${short(r.acq.broker)}`],
+    [`갖고 있는 ${r.N}년`, '보유', r.holdTotal, `이자 ${short(r.hold.interest)} · 보유세 ${short(r.hold.prop + r.hold.jong)} · ${res ? '관리비 ' + short(r.hold.mgmt) : '운영비 ' + short(r.hold.opex)}`],
+    ['팔 때', '판', r.saleTotal, `양도세 ${short(r.sale.cgt)} · 중개보수 ${short(r.sale.broker)}`]
+  ];
+  $('stages').innerHTML = st.map(([n, ic, v, d]) => `<div class="li"><div class="ic">${ic}</div><div class="tx"><b>${n}</b><span>${d}</span></div><div class="am tnum">${won(v)}<small>매입가의 ${(v / r.P * 100).toFixed(1)}%</small></div></div>`).join('');
+
+  $('kpis').innerHTML = [
+    ['처음 넣은 돈', won(r.equity), `대출 ${short(r.loan0)} 빼고`],
+    ['보유 중 더 넣은 돈', won(r.extraInjected), res ? `원금 상환 ${short(r.principalPaid)} 포함` : '임대수입으로 못 메운 몫'],
+    ['팔고 손에 쥔 돈', won(r.ownerWealth), `남은 대출 ${short(r.last.balance)} 갚고`],
+    ['총 수익률', `<span class="${cls(r.ownerProfit)}">${pct(r.ownerProfit / r.injected)}</span>`, `연환산 ${pct(r.ownerIrr, 2)}`]
+  ].map(([t, v, d]) => `<div class="k"><div class="t">${t}</div><div class="v tnum">${v}</div><div class="d">${d}</div></div>`).join('');
+
+  // 비교
+  const rows = [{ name: res ? '집을 산다' : '건물을 산다', profit: r.ownerProfit, irr: r.ownerIrr, c: LINE_COLORS[0] }, ...r.alts.map((a, i) => ({ ...a, c: LINE_COLORS[i + 1] }))];
+  $('cmpSub').textContent = res
+    ? `같은 ${won(r.equity)}으로 시작해 집주인이 낸 만큼 똑같이 쓰고, 세입자는 같은 아파트에 살며 남는 돈을 예금(세후 ${(p.depRate * .846).toFixed(2)}%)에 둬요.`
+    : `같은 ${won(r.equity)}으로 시작해, 건물에 더 넣은 만큼 예금(세후 ${(p.depRate * .846).toFixed(2)}%)에도 넣어요.`;
+  const minP = Math.min(0, ...rows.map(x => x.profit)), maxP = Math.max(0, ...rows.map(x => x.profit)), span = (maxP - minP) || 1, z = -minP / span * 100;
+  const sorted = rows.slice().sort((a, b) => b.profit - a.profit);
+  $('cmp').innerHTML = sorted.map((x, i) => {
+    const w = Math.abs(x.profit) / span * 100, left = x.profit >= 0 ? z : z - w;
+    return `<div class="cmp-row"><div class="rk ${i === 0 ? 'first' : ''}">${i + 1}</div>
+      <div class="nm"><span class="dot" style="background:${x.c}"></span>${x.name}</div>
+      <div class="r"><b class="tnum ${cls(x.profit)}">${swon(x.profit)}</b><span>연 ${pct(x.irr, 2)}</span></div>
+      <div class="track"><i style="left:${left}%;width:${w}%;background:${x.c}"></i>${minP < 0 ? `<em style="left:${z}%"></em>` : ''}</div></div>`;
+  }).join('');
+  const best = sorted[0], ownerBest = best === rows[0];
+  const diff = ownerBest ? rows[0].profit - (sorted[1] ? sorted[1].profit : 0) : best.profit - rows[0].profit;
+  $('verdict').innerHTML = ownerBest
+    ? `이 조건에서는 <b>사는 쪽</b>이 다음 선택보다 <b>${won(diff)}</b> 더 남아요.`
+    : `이 조건에서는 <b>${esc(best.name)}</b>가 사는 것보다 <b>${won(diff)}</b> 더 남아요. 시세 상승률을 바꿔 보며 손익분기점을 찾아보세요.`;
+
+  drawCharts(r); renderReceipt(r); renderNotes(r); renderTable(r);
+}
+
+function drawCharts(r){ drawLine(r); drawBars(r); }
+function niceTicks(min, max, count = 5){
+  const span = max - min || 1; const step0 = span / count; const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= count) || 10 * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step; const out = [];
+  for (let v = lo; v <= hi + step / 2; v += step) out.push(Math.abs(v) < step / 1e6 ? 0 : v);
+  return out;
+}
+function showTip(box, html, x, y){
+  let tip = box.querySelector('.tip'); if (!tip){ tip = document.createElement('div'); tip.className = 'tip'; box.appendChild(tip); }
+  tip.innerHTML = html; tip.hidden = false;
+  const bw = box.clientWidth, tw = tip.offsetWidth;
+  tip.style.left = Math.min(Math.max(0, x + 14), bw - tw) + 'px'; tip.style.top = Math.max(0, y) + 'px';
+}
+function hideTip(box){ const t = box.querySelector('.tip'); if (t) t.hidden = true; }
+
+function drawLine(r){
+  const box = $('lineChart'); const W = Math.max(280, box.clientWidth), H = 240;
+  const m = { l: 50, r: 12, t: 10, b: 26 };
+  const series = [{ name: r.p.type === 'res' ? '집을 산다' : '건물을 산다', vals: r.years.map(y => y.ownerProfit) },
+    ...r.alts.map(a => ({ name: a.name, vals: r.years.map(y => y.alt[a.key]) }))];
+  $('lineLegend').innerHTML = series.map((s, i) => `<span><i class="ln" style="background:${LINE_COLORS[i]}"></i>${s.name}</span>`).join('');
+  const all = series.flatMap(s => s.vals); const ticks = niceTicks(Math.min(0, ...all), Math.max(0, ...all));
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const N = r.N; const xs = t => m.l + (N === 1 ? (W - m.l - m.r) / 2 : (t - 1) / (N - 1) * (W - m.l - m.r));
+  const ys = v => m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="보유 연도별 순이익 비교">`;
+  for (const t of ticks) s += `<line class="${t === 0 ? 'axis' : 'grid-line'}" x1="${m.l}" x2="${W - m.r}" y1="${ys(t)}" y2="${ys(t)}"/><text x="${m.l - 8}" y="${ys(t) + 4}" text-anchor="end">${short(t)}</text>`;
+  const step = Math.ceil(N / Math.max(1, Math.floor((W - m.l) / 44)));
+  for (let t = 1; t <= N; t++) if ((t - 1) % step === 0 || t === N) s += `<text x="${xs(t)}" y="${H - 6}" text-anchor="middle">${t}년</text>`;
+  series.forEach((se, i) => {
+    const d = se.vals.map((v, k) => (k ? 'L' : 'M') + xs(k + 1).toFixed(1) + ' ' + ys(v).toFixed(1)).join(' ');
+    s += `<path d="${d}" fill="none" stroke="${LINE_COLORS[i]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    s += `<circle cx="${xs(N)}" cy="${ys(se.vals[N - 1])}" r="4" fill="${LINE_COLORS[i]}" stroke="var(--card)" stroke-width="2"/>`;
+  });
+  s += `<line id="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>`;
+  s += `<rect x="${m.l - 10}" y="0" width="${W - m.l - m.r + 20}" height="${H}" fill="transparent" id="lineHit"/></svg>`;
+  box.innerHTML = s;
+  const hit = box.querySelector('#lineHit'), xh = box.querySelector('#xh');
+  const move = e => {
+    const rect = box.getBoundingClientRect(); const px = e.clientX - rect.left; const sc = W / rect.width;
+    const t = N === 1 ? 1 : Math.min(N, Math.max(1, Math.round((px * sc - m.l) / (W - m.l - m.r) * (N - 1)) + 1));
+    xh.setAttribute('x1', xs(t)); xh.setAttribute('x2', xs(t)); xh.setAttribute('visibility', 'visible');
+    const y = r.years[t - 1];
+    showTip(box, `<div class="h">${t}년 차 말에 판다면</div>` + series.map((se, i) => `<div class="rw"><span><span class="dot" style="background:${LINE_COLORS[i]};margin-right:6px"></span>${se.name}</span><b>${swon(se.vals[t - 1])}</b></div>`).join('') +
+      `<div class="rw" style="margin-top:4px"><span>그때 시세</span><b>${won(y.value)}</b></div>`, xs(t) / sc, 0);
+  };
+  hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => { xh.setAttribute('visibility', 'hidden'); hideTip(box); });
+}
+
+function yearBuckets(r){
+  const cols = [{ label: '살 때', deal: r.acq.broker + r.acq.legal + r.acq.stamp + r.acq.moving, tax: r.acq.acqTax + r.acq.edu + r.acq.rural, int: 0, mgmt: 0, hi: 0, income: 0 }];
+  for (const y of r.years) cols.push({ label: y.t + '년', deal: 0, tax: y.prop + y.jong + y.incomeTax, int: y.interest, mgmt: y.mgmt + y.repair + y.opex, hi: y.hi, income: y.rentIncome, y });
+  cols.push({ label: '팔 때', deal: r.sale.broker + r.sale.prepay, tax: r.sale.cgt, int: 0, mgmt: 0, hi: 0, income: 0 });
+  cols.forEach(c => c.total = SERIES.reduce((s, se) => s + c[se.key], 0));
+  return cols;
+}
+function drawBars(r){
+  const box = $('barChart'); const W = Math.max(280, box.clientWidth), H = 250;
+  const m = { l: 50, r: 6, t: 10, b: 26 };
+  const cols = yearBuckets(r); const com = r.p.type === 'com';
+  $('barSub').textContent = com ? '원금 상환은 빼고 순수 비용만 쌓았어요. 검은 점은 그해 들어온 임대수입이에요.' : '원금 상환은 내 자산으로 남으니 빼고, 순수 비용만 쌓았어요.';
+  $('barLegend').innerHTML = SERIES.map(se => `<span><i style="background:${se.c}"></i>${se.name}</span>`).join('') + (com ? `<span><i style="background:var(--ink);border-radius:50%"></i>임대수입</span>` : '');
+  const maxV = Math.max(...cols.map(c => Math.max(c.total, c.income)));
+  const ticks = niceTicks(0, maxV, 4); const top = ticks[ticks.length - 1];
+  const n = cols.length, iw = W - m.l - m.r, slot = iw / n, bw = Math.max(4, Math.min(30, slot * .66));
+  const ys = v => m.t + (1 - v / top) * (H - m.t - m.b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="연도별 비용 구성">`;
+  for (const t of ticks) s += `<line class="${t === 0 ? 'axis' : 'grid-line'}" x1="${m.l}" x2="${W - m.r}" y1="${ys(t)}" y2="${ys(t)}"/><text x="${m.l - 8}" y="${ys(t) + 4}" text-anchor="end">${short(t)}</text>`;
+  const lstep = Math.ceil(n / Math.max(1, Math.floor(iw / 38)));
+  cols.forEach((c, i) => {
+    const cx = m.l + slot * (i + .5); let acc = 0; const segs = SERIES.filter(se => c[se.key] > 0);
+    segs.forEach((se, k) => {
+      const yTop = ys(acc + c[se.key]), yBot = ys(acc); acc += c[se.key];
+      const h = Math.max(0, yBot - yTop - (k ? 2 : 0)); if (h <= 0) return;
+      const isTop = k === segs.length - 1, rad = isTop ? Math.min(4, h, bw / 2) : 0, x = cx - bw / 2, y = yTop;
+      const d = rad ? `M${x} ${y + h}V${y + rad}Q${x} ${y} ${x + rad} ${y}H${x + bw - rad}Q${x + bw} ${y} ${x + bw} ${y + rad}V${y + h}Z` : `M${x} ${y}h${bw}v${h}h${-bw}Z`;
+      s += `<path d="${d}" fill="${se.c}"/>`;
+    });
+    if (c.income > 0) s += `<circle cx="${cx}" cy="${ys(c.income)}" r="4" fill="var(--ink)" stroke="var(--card)" stroke-width="2"/>`;
+    const special = i === 0 || i === n - 1;
+    if (special || ((i - 1) % lstep === 0 && i > 1 && i < n - 2)) s += `<text x="${cx}" y="${H - 6}" text-anchor="middle" style="${special ? 'fill:var(--ink);font-weight:700' : ''}">${c.label}</text>`;
+    s += `<rect class="hit" data-i="${i}" x="${cx - slot / 2}" y="${m.t}" width="${slot}" height="${H - m.t - m.b}" fill="transparent"/>`;
+  });
+  s += '</svg>'; box.innerHTML = s;
+  const sc = () => W / box.getBoundingClientRect().width;
+  box.querySelectorAll('.hit').forEach(h => {
+    const fn = () => { const i = +h.dataset.i, c = cols[i]; const parts = [];
+      if (c.y){ const y = c.y;
+        parts.push([`대출이자 (금리 ${(y.rate * 100).toFixed(2)}%)`, y.interest], ['재산세', y.prop], ['종부세', y.jong]);
+        if (y.mgmt) parts.push(['관리비', y.mgmt]); if (y.repair) parts.push(['수선·보험', y.repair]); if (y.opex) parts.push(['운영비', y.opex]);
+        if (y.incomeTax) parts.push(['임대소득세', y.incomeTax]); parts.push(['건강보험 증가', y.hi]);
+        if (y.rentIncome) parts.push(['임대수입', -y.rentIncome]);
+      } else if (i === 0){ parts.push(['취득세 등', c.tax], ['중개보수', r.acq.broker], ['법무사·등기', r.acq.legal + r.acq.stamp]); if (r.acq.moving) parts.push(['이사·입주', r.acq.moving]); }
+      else { parts.push(['양도소득세', r.sale.cgt], ['중개보수', r.sale.broker], ['중도상환수수료', r.sale.prepay]); }
+      showTip(box, `<div class="h">${c.label} · ${won(c.total)}</div>` + parts.filter(x => Math.abs(x[1]) >= 1).map(([k, v]) => `<div class="rw"><span>${k}</span><b>${v < 0 ? '+' + won(-v) : won(v)}</b></div>`).join(''), (m.l + slot * (i + .5)) / sc(), 0);
+    };
+    h.addEventListener('pointerenter', fn); h.addEventListener('pointerdown', fn);
+  });
+  box.addEventListener('pointerleave', () => hideTip(box));
+}
+
+function renderReceipt(r){
+  const res = r.p.type === 'res';
+  const ln = (k, v) => `<div class="rc-ln${Math.abs(v) < 1 ? ' nil' : ''}"><span>${k}</span><span>${won(v)}</span></div>`;
+  const hidden = r.acqTotal + r.holdTotal + r.saleTotal;
+  $('receipt').innerHTML = `<h2>숨은 비용 영수증<span class="pct-pill">매입가의 ${(hidden / r.P * 100).toFixed(1)}%</span></h2><p class="sub">${r.N}년 동안 집값 말고 따로 나간 돈이에요.</p>
+    <div class="rc-sec"><div class="rc-hd"><span>살 때</span><span>${won(r.acqTotal)}</span></div>
+      ${ln('취득세', r.acq.acqTax)}${ln('지방교육세', r.acq.edu)}${res ? '' : ln('농어촌특별세', r.acq.rural)}${ln('중개보수 (부가세 포함)', r.acq.broker)}${ln('법무사·등기·채권할인', r.acq.legal)}${ln('대출 인지세', r.acq.stamp)}${res ? ln('이사·입주 청소', r.acq.moving) : ''}</div>
+    <div class="rc-sec"><div class="rc-hd"><span>갖고 있는 ${r.N}년</span><span>${won(r.holdTotal)}</span></div>
+      ${ln('대출이자', r.hold.interest)}${ln('재산세 (교육세·도시분 포함)', r.hold.prop)}${ln('종합부동산세 (농특세 포함)', r.hold.jong)}
+      ${res ? ln('관리비', r.hold.mgmt) + ln('수선·보험', r.hold.repair) : ln('운영비 (관리·수선·보험)', r.hold.opex) + ln('임대소득세', r.hold.incomeTax)}
+      ${ln('늘어난 건강보험료', r.hold.hi)}</div>
+    <div class="rc-sec"><div class="rc-hd"><span>팔 때</span><span>${won(r.saleTotal)}</span></div>
+      ${ln('양도소득세 (지방세 포함)', r.sale.cgt)}${ln('중개보수 (부가세 포함)', r.sale.broker)}${ln('중도상환수수료', r.sale.prepay)}</div>
+    <div class="rc-total"><span>합계</span><span class="tnum">${won(hidden)}</span></div>
+    <div class="rc-foot">비용이 아닌 돈: 대출 원금 상환 ${won(r.principalPaid)}${res ? '' : `, 임대수입 +${won(r.rentIncome)}`}</div>`;
+}
+
+function renderNotes(r){
+  const res = r.p.type === 'res';
+  const items = res ? [
+    '1주택자가 직접 살면서 보유한다고 봤어요. 2년 이상 보유·거주하면 양도가 12억원까지 비과세이고, 넘는 부분은 장기보유특별공제(보유+거주 연 8%, 최대 80%)를 적용했어요.',
+    '취득세는 1주택 세율(6억 이하 1%, 6~9억 점증, 9억 초과 3%)에 지방교육세를 더했어요. 다주택 중과는 아직 반영하지 않았어요.',
+    `재산세는 공시가격(시세의 ${r.p.pubRatio}%) × 공정시장가액비율 43~45%에 1주택 특례세율을 썼어요. 종부세는 공시 12억 공제 후 계산하고 장기보유 세액공제만 넣었어요.`,
+    '세입자도 같은 아파트에 살아서 관리비를 똑같이 내요. 전세금은 2년마다 시세에 맞춰 올리고, 4년마다 이사(중개보수·이사비)를 해요. 돈이 모자라면 대출 금리로 빌려요.'
+  ] : [
+    `임대수입에서 운영비·이자·보유세를 뺀 금액에 한계세율 ${r.p.incomeTax}%로 임대소득세를 매겼어요. 감가상각은 넣지 않았어요.`,
+    '취득세는 비주택 4.6%, 중개보수는 상한 0.9%에 부가세를 더했어요. 건물분 부가세는 포괄양수도로 보고 뺐어요.',
+    '재산세는 토지(별도합산)와 건물을 나눠 계산했고, 종부세는 토지 공시가격 80억원 초과분에만 붙어요.',
+    '양도세는 장기보유특별공제 연 2%(최대 30%)를 적용했어요. 법인 매입은 다루지 않아요.'
+  ];
+  items.push(
+    '건강보험은 ' + (r.p.hi === 'local' ? '지역가입자의 재산 과세표준에 따른 재산분(근사표)' : '직장가입자라 재산분은 없고') + (res ? '' : ', 임대소득 소득분(7.19%+장기요양)') + '을 넣었어요.',
+    `대출 금리는 첫해 ${r.p.rate0}%에서 매년 ${r.p.rateUp}%p씩 오르고, 3년 안에 갚으면 중도상환수수료가 붙어요. 예금 이자에는 15.4%가 과세돼요.`,
+    '모든 세율과 비율은 2026년 기준 추정치예요. 실제 세액은 지역, 면적, 보유 주택 수, 감면 여부에 따라 달라져요.'
+  );
+  $('notes').innerHTML = items.map(x => `<li>${esc(x)}</li>`).join('');
+}
+
+function renderTable(r){
+  const res = r.p.type === 'res';
+  const altH = r.alts.map(a => `<th>${a.name}</th>`).join('');
+  let h = `<thead><tr><th>연차</th><th>시세</th><th>금리</th><th>이자</th><th>원금상환</th><th>재산세</th><th>종부세</th><th>${res ? '관리·수선' : '운영비'}</th>${res ? '' : '<th>임대수입</th><th>임대소득세</th>'}<th>건보 증가</th><th>대출잔액</th><th>이때 팔면</th>${altH}</tr></thead><tbody>`;
+  for (const y of r.years) h += `<tr><td>${y.t}년</td><td>${short(y.value)}</td><td>${(y.rate * 100).toFixed(2)}%</td><td>${short(y.interest)}</td><td>${short(y.principal)}</td><td>${short(y.prop)}</td><td>${short(y.jong)}</td><td>${short(res ? y.mgmt + y.repair : y.opex)}</td>${res ? '' : `<td>${short(y.rentIncome)}</td><td>${short(y.incomeTax)}</td>`}<td>${short(y.hi)}</td><td>${short(y.balance)}</td><td>${short(y.ownerProfit)}</td>${r.alts.map(a => `<td>${short(y.alt[a.key])}</td>`).join('')}</tr>`;
+  $('yearTable').innerHTML = h + '</tbody>';
+}
+
+syncInputs(); bindSetup();
+</script>
+</body></html>
